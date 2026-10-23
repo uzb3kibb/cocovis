@@ -4,54 +4,58 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
 public class DiamondHud {
-    public static float x = 100.0f;
-    public static float y = 100.0f;
+    public static int x = 100;
+    public static int y = 100;
     public static float scale = 1.0f;
+    public static int width = 120;
+    public static int height = 50;
 
-    public static int boundsX = (int) x;
-    public static int boundsY = (int) y;
-    public static int boundsW = (int) (120 * scale);
-    public static int boundsH = (int) (50 * scale);
+    public static boolean dragging = false;
+    private static double dragOffsetX = 0;
+    private static double dragOffsetY = 0;
 
-    private static boolean isDragging = false;
-    private static double dragX, dragY;
+    public static void render(DrawContext context, float delta) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        int scaledWidth = (int) (width * scale);
+        int scaledHeight = (int) (height * scale);
 
-    public static void drawPanel(DrawContext context, MinecraftClient client) {
-        boundsX = (int) x;
-        boundsY = (int) y;
-        boundsW = (int) (120 * scale);
-        boundsH = (int) (50 * scale);
-
-        context.fill(boundsX, boundsY, boundsX + boundsW, boundsY + boundsH, 0x80000000);
-        context.drawText(client.textRenderer, "Алмазы", boundsX + 6, boundsY + 6, 0xFFFFFF, true);
+        // Отрисовка фона и текста виджета
+        context.fill(x, y, x + scaledWidth, y + scaledHeight, 0x80000000);
+        context.drawText(client.textRenderer, "Алмазы", x + 6, y + 6, 0xFFFFFF, true);
     }
 
-    public static void onMouseDown(double mouseX, double mouseY, int button) {
+    public static boolean isHovered(double mouseX, double mouseY) {
+        int scaledWidth = (int) (width * scale);
+        int scaledHeight = (int) (height * scale);
+        return mouseX >= x && mouseX <= x + scaledWidth && mouseY >= y && mouseY <= y + scaledHeight;
+    }
+
+    public static void mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && isHovered(mouseX, mouseY)) {
+            dragging = true;
+            dragOffsetX = mouseX - x;
+            dragOffsetY = mouseY - y;
+        }
+    }
+
+    public static void mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (dragging) {
+            x = (int) (mouseX - dragOffsetX);
+            y = (int) (mouseY - dragOffsetY);
+        }
+    }
+
+    public static void mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            if (mouseX >= boundsX && mouseX <= boundsX + boundsW && mouseY >= boundsY && mouseY <= boundsY + boundsH) {
-                isDragging = true;
-                dragX = mouseX - x;
-                dragY = mouseY - y;
-            }
+            dragging = false;
         }
     }
 
-    public static void onMouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (isDragging) {
-            x = (float) (mouseX - dragX);
-            y = (float) (mouseY - dragY);
+    public static void mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (isHovered(mouseX, mouseY)) {
+            scale += verticalAmount * 0.1f;
+            if (scale < 0.5f) scale = 0.5f;
+            if (scale > 3.0f) scale = 3.0f;
         }
-    }
-
-    public static void onMouseUp(int button) {
-        if (button == 0) {
-            isDragging = false;
-        }
-    }
-
-    public static void onMouseScrolled(double amount) {
-        scale += (amount > 0 ? 0.1f : -0.1f);
-        if (scale < 0.5f) scale = 0.5f;
-        if (scale > 3.0f) scale = 3.0f;
     }
 }
