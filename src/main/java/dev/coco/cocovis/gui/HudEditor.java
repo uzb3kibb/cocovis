@@ -1,8 +1,7 @@
 package dev.coco.cocovis.gui;
 
 import dev.coco.cocovis.DiamondHud;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
@@ -18,13 +17,19 @@ public class HudEditor extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         
         // Рендерим панель в режиме редактора
         DiamondHud.drawPanel(context, this.client);
         
-        context.drawCenteredTextWithShadow(this.textRenderer, "Редактор HUD (RShift / ESC для выхода)", this.width / 2, 20, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(
+            this.textRenderer, 
+            "Редактор HUD (RShift / ESC для выхода)", 
+            this.width / 2, 
+            20, 
+            0xFFFFFF
+        );
     }
 
     @Override
@@ -47,7 +52,6 @@ public class HudEditor extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        // Если курсор над виджетом — крутим колесико для скейла
         if (mouseX >= DiamondHud.boundsX && mouseX <= DiamondHud.boundsX + DiamondHud.boundsW &&
             mouseY >= DiamondHud.boundsY && mouseY <= DiamondHud.boundsY + DiamondHud.boundsH) {
             DiamondHud.onMouseScrolled(verticalAmount);
