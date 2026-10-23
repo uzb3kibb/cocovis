@@ -33,7 +33,7 @@ public class CocoVisClient implements ClientModInitializer {
                 if (client.gui.screen() == null)client.gui.setScreen(new VisualsScreen());
             }
             while (editHud.consumeClick()) {
-                if (client.player != null && client.gui.screen() == null) lient.gui.setScreen(new HudEditor());
+               if (client.player != null && client.gui.screen() == null) client.gui.setScreen(new HudEditor());
             }
         });
 
