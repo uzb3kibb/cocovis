@@ -1,14 +1,14 @@
 package dev.coco.cocovis.gui;
 
 import dev.coco.cocovis.DiamondHud;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 
 public class HudEditor extends Screen {
 
     public HudEditor() {
-        super(new LiteralText("HUD Editor"));
+        super(Text.literal("HUD Editor"));
     }
 
     @Override
@@ -17,48 +17,48 @@ public class HudEditor extends Screen {
     }
 
     @Override
-    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-        this.renderBackground(matrices);
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.render(context, mouseX, mouseY, delta);
         
-        // Рендерим панель
-        DiamondHud.drawPanel(matrices, this.client);
-        
-        drawCenteredString(matrices, this.textRenderer, "Редактор HUD (RShift для выхода)", this.width / 2, 20, 0xFFFFFF);
-        
-        super.render(matrices, mouseX, mouseY, delta);
+        // Рендерим виджет в режиме редактирования
+        DiamondHud.render(context, delta);
+
+        context.drawCenteredTextWithShadow(
+            this.textRenderer,
+            "Редактор HUD. Перетаскивайте мышкой, меняйте размер колесиком.",
+            this.width / 2,
+            20,
+            0xFFFF55
+        );
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        DiamondHud.onMouseDown(mouseX, mouseY, button);
+        DiamondHud.mouseClicked(mouseX, mouseY, button);
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        DiamondHud.onMouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        DiamondHud.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        DiamondHud.onMouseUp(button);
+        DiamondHud.mouseReleased(mouseX, mouseY, button);
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-        if (mouseX >= DiamondHud.boundsX && mouseX <= DiamondHud.boundsX + DiamondHud.boundsW &&
-            mouseY >= DiamondHud.boundsY && mouseY <= DiamondHud.boundsY + DiamondHud.boundsH) {
-            DiamondHud.onMouseScrolled(amount);
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, amount);
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        DiamondHud.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // 344 - RShift, 256 - ESC
+        // 344 - Правый Shift (RShift), 256 - ESC
         if (keyCode == 344 || keyCode == 256) {
             this.close();
             return true;
