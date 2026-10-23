@@ -27,7 +27,7 @@ public class VisualsScreen extends Screen {
             y += ROW_H;
         }
         addRenderableWidget(Button.builder(Component.literal("Настроить панель алмазов..."),
-                btn -> minecraft.setScreen(new HudEditor()))
+                btn -> minecraft.gui.setScreen(new HudEditor())
                 .bounds(x, y + 4, PANEL_W - 16, 20).build());
     }
 
