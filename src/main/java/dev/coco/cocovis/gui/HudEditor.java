@@ -20,7 +20,7 @@ public class HudEditor extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         
-        // Рендерим панель в режиме редактора
+        // Рендерим панель в редакторе
         DiamondHud.drawPanel(context, this.client);
         
         context.drawCenteredTextWithShadow(
