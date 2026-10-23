@@ -1,35 +1,32 @@
 package dev.coco.cocovis.gui;
 
 import dev.coco.cocovis.DiamondHud;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.text.LiteralText;
 
 public class HudEditor extends Screen {
 
     public HudEditor() {
-        super(Text.literal("HUD Editor"));
+        super(new LiteralText("HUD Editor"));
     }
 
+    @딜 true // если нужна пауза, но оставим false
     @Override
     public boolean shouldPause() {
         return false;
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+        this.renderBackground(matrices);
         
-        // Рендерим панель в редакторе
-        DiamondHud.drawPanel(context, this.client);
+        // Рендерим панель
+        DiamondHud.drawPanel(matrices, this.client);
         
-        context.drawCenteredTextWithShadow(
-            this.textRenderer, 
-            "Редактор HUD (RShift / ESC для выхода)", 
-            this.width / 2, 
-            20, 
-            0xFFFFFF
-        );
+        drawCenteredString(matrices, this.textRenderer, "Редактор HUD (RShift для выхода)", this.width / 2, 20, 0xFFFFFF);
+        
+        super.render(matrices, mouseX, mouseY, delta);
     }
 
     @Override
@@ -51,13 +48,13 @@ public class HudEditor extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         if (mouseX >= DiamondHud.boundsX && mouseX <= DiamondHud.boundsX + DiamondHud.boundsW &&
             mouseY >= DiamondHud.boundsY && mouseY <= DiamondHud.boundsY + DiamondHud.boundsH) {
-            DiamondHud.onMouseScrolled(verticalAmount);
+            DiamondHud.onMouseScrolled(amount);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
 
     @Override
