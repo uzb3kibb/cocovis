@@ -11,7 +11,6 @@ public class HudEditor extends Screen {
         super(new LiteralText("HUD Editor"));
     }
 
-    @딜 true // если нужна пауза, но оставим false
     @Override
     public boolean shouldPause() {
         return false;
