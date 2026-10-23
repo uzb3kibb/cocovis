@@ -1,58 +1,64 @@
 package dev.coco.cocovis;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.client.gui.GuiGraphics; // Или DrawContext в зависимости от версии
+import net.minecraft.client.util.math.MatrixStack;
 
 public class DiamondHud {
-    public float x = 100.0f;
-    public float y = 100.0f;
-    public float scale = 1.0f;
+    // Позиция и масштаб
+    public static float x = 100.0f;
+    public static float y = 100.0f;
+    public static float scale = 1.0f;
 
-    private boolean isDragging = false;
-    private double dragX, dragY;
-    private boolean wasMouseDown = false;
+    // Границы для кликов/проверок
+    public static int boundsX = (int) x;
+    public static int boundsY = (int) y;
+    public static int boundsW = (int) (120 * scale);
+    public static int boundsH = (int) (50 * scale);
 
-    public void render(DrawContext context, boolean isEditing) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        
-        // Получаем актуальные координаты мыши и состояние кнопки напрямую через GLFW/окно
-        long window = client.getWindow().getHandle();
-        double mouseX = client.mouse.getX() * (double) client.getWindow().getScaledWidth() / (double) client.getWindow().getWidth();
-        double mouseY = client.getWindow().getScaledHeight() - (client.mouse.getY() * (double) client.getWindow().getScaledHeight() / (double) client.getWindow().getHeight()) - 1;
+    private static boolean isDragging = false;
+    private static double dragX, dragY;
 
-        boolean isMouseDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+    // Отрисовка виджета
+    public static void drawPanel(GuiGraphics context, MinecraftClient client) {
+        boundsX = (int) x;
+        boundsY = (int) y;
+        boundsW = (int) (120 * scale);
+        boundsH = (int) (50 * scale);
 
-        float width = 120 * scale;
-        float height = 50 * scale;
+        // Пример отрисовки фона и текста
+        context.fill(boundsX, boundsY, boundsX + boundsW, boundsY + boundsH, 0x80000000);
+        context.drawText(client.textRenderer, "Алмазы", boundsX + 6, boundsY + 6, 0xFFFFFF, true);
+    }
 
-        boolean hovered = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
-
-        if (isEditing) {
-            if (isMouseDown) {
-                if (!wasMouseDown && hovered) {
-                    isDragging = true;
-                    dragX = mouseX - x;
-                    dragY = mouseY - y;
-                } else if (isDragging) {
-                    x = (float) (mouseX - dragX);
-                    y = (float) (mouseY - dragY);
-                }
-            } else {
-                isDragging = false;
+    // Логика перетаскивания мышей через события
+    public static void onMouseDown(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            if (mouseX >= boundsX && mouseX <= boundsX + boundsW && mouseY >= boundsY && mouseY <= boundsY + boundsH) {
+                isDragging = true;
+                dragX = mouseX - x;
+                dragY = mouseY - y;
             }
-        } else {
+        }
+    }
+
+    public static void onMouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (isDragging) {
+            x = (float) (mouseX - dragX);
+            y = (float) (mouseY - dragY);
+        }
+    }
+
+    public static void onMouseUp(int button) {
+        if (button == 0) {
             isDragging = false;
         }
+    }
 
-        wasMouseDown = isMouseDown;
-
-        // Отрисовка виджета
-        context.fill((int) x, (int) y, (int) (x + width), (int) (y + height), 0x80000000);
-        context.drawText(client.textRenderer, "Алмазы", (int) (x + 6), (int) (y + 6), 0xFFFFFF, true);
-        
-        if (isEditing && hovered) {
-            context.drawBorder((int) x, (int) y, (int) width, (int) height, 0xFFFF00FF);
-        }
+    // Изменение размера колесиком
+    public static void onMouseScrolled(double amount) {
+        scale += (amount > 0 ? 0.1f : -0.1f);
+        if (scale < 0.5f) scale = 0.5f;
+        if (scale > 3.0f) scale = 3.0f;
     }
 }
