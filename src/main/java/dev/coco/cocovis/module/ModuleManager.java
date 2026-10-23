@@ -1,23 +1,41 @@
 package dev.coco.cocovis.module;
 
 import dev.coco.cocovis.DiamondConfig;
+import dev.coco.cocovis.gui.HudEditor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class ModuleManager {
+    public record Category(String name, String subtitle, Item icon, List<Module> modules) {}
+
     private static final DiamondConfig CFG = DiamondConfig.get();
 
-    public static final Module WATERMARK = new Module("Watermark", "Надпись CocoVis в углу", true);
-    public static final Module COORDS    = new Module("Coords", "Координаты", true);
-    public static final Module FPS       = new Module("FPS", "Счётчик FPS", false);
+    public static final Module WATERMARK = new Module("Watermark", "Надпись CocoVis в углу экрана", true);
+    public static final Module COORDS    = new Module("Coords", "Координаты игрока", true);
+    public static final Module FPS       = new Module("FPS", "Счётчик кадров в секунду", false);
+
     public static final Module DIAMONDS  = new Module("Diamond HUD", "Панель алмазов: инвентарь, сундуки, эндер-сундук",
-            CFG.showHud, v -> { CFG.showHud = v; DiamondConfig.save(); });
-    public static final Module TOOLTIP   = new Module("Price Tooltip", "Цена предмета в алмазах в тултипе",
+            CFG.showHud, v -> { CFG.showHud = v; DiamondConfig.save(); })
+            .withSettings(() -> Minecraft.getInstance().gui.setScreen(new HudEditor()));
+    public static final Module TOOLTIP   = new Module("Price Tooltip", "Цена предмета в алмазах в подсказке",
             CFG.showTooltips, v -> { CFG.showTooltips = v; DiamondConfig.save(); });
     public static final Module TOASTS    = new Module("Diamond Toasts", "Уведомление при изменении суммы алмазов",
             CFG.showToasts, v -> { CFG.showToasts = v; DiamondConfig.save(); });
 
-    public static final List<Module> ALL = List.of(WATERMARK, COORDS, FPS, DIAMONDS, TOOLTIP, TOASTS);
+    public static final List<Category> CATEGORIES = List.of(
+            new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),
+            new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS))
+    );
+
+    public static List<Module> all() {
+        List<Module> out = new ArrayList<>();
+        for (Category c : CATEGORIES) out.addAll(c.modules());
+        return out;
+    }
 
     private ModuleManager() {}
 }

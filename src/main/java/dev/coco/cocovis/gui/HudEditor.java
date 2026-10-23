@@ -12,7 +12,9 @@ import net.minecraft.network.chat.Component;
 
 /** Редактор панели алмазов: ЛКМ + тяни — двигать, колесо — размер, R — сброс. */
 public class HudEditor extends Screen {
-    private boolean dragging;
+    private boolean dragging, dragSeen;
+    private double lastX, lastY, posX, posY;
+    private int nClick, nDrag, nMove;
 
     public HudEditor() {
         super(Component.literal("Diamond HUD"));
@@ -34,27 +36,52 @@ public class HudEditor extends Screen {
         cfg.hudScale = 1.0f;
     }
 
+    private void moveTo(double x, double y) {
+        DiamondConfig cfg = DiamondConfig.get();
+        posX += x - lastX;
+        posY += y - lastY;
+        lastX = x;
+        lastY = y;
+        posX = Math.max(0, Math.min(width - 20, posX));
+        posY = Math.max(0, Math.min(height - 20, posY));
+        cfg.hudX = (int) Math.round(posX);
+        cfg.hudY = (int) Math.round(posY);
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (super.mouseClicked(event, doubleClick)) return true;
+        nClick++;
         if (event.button() == 0
-                && event.x() >= DiamondHud.boundsX && event.x() <= DiamondHud.boundsX + DiamondHud.boundsW
-                && event.y() >= DiamondHud.boundsY && event.y() <= DiamondHud.boundsY + DiamondHud.boundsH) {
+                && Ui.inside(event.x(), event.y(), DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH)) {
+            DiamondConfig cfg = DiamondConfig.get();
             dragging = true;
+            dragSeen = false;
+            lastX = event.x();
+            lastY = event.y();
+            posX = cfg.hudX;
+            posY = cfg.hudY;
             return true;
         }
-        return false;
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        nDrag++;
         if (dragging) {
-            DiamondConfig cfg = DiamondConfig.get();
-            cfg.hudX = (int) Math.max(0, Math.min(width - 10, cfg.hudX + dragX));
-            cfg.hudY = (int) Math.max(0, Math.min(height - 10, cfg.hudY + dragY));
+            dragSeen = true;
+            moveTo(event.x(), event.y());
             return true;
         }
         return super.mouseDragged(event, dragX, dragY);
+    }
+
+    @Override
+    public void mouseMoved(double x, double y) {
+        nMove++;
+        // запасной путь: если события перетаскивания не приходят — двигаем по движению мыши
+        if (dragging && !dragSeen) moveTo(x, y);
+        super.mouseMoved(x, y);
     }
 
     @Override
@@ -88,6 +115,7 @@ public class HudEditor extends Screen {
         String l2 = "Размер: " + Math.round(cfg.hudScale * 100) + "%   положение: " + cfg.hudX + ", " + cfg.hudY;
         g.text(font, l1, width / 2 - font.width(l1) / 2, height - 54, 0xFFDDDDDD, true);
         g.text(font, l2, width / 2 - font.width(l2) / 2, height - 44, 0xFFAAAAAA, true);
+        g.text(font, "отладка: клики " + nClick + ", тяга " + nDrag + ", движение " + nMove, 6, height - 12, 0xFF666666, false);
     }
 
     @Override

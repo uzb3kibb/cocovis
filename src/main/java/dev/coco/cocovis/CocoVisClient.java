@@ -30,10 +30,10 @@ public class CocoVisClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             DiamondTracker.tick(client);
             while (openMenu.consumeClick()) {
-                if (client.gui.screen() == null)client.gui.setScreen(new VisualsScreen());
+                if (client.gui.screen() == null) client.gui.setScreen(new VisualsScreen());
             }
             while (editHud.consumeClick()) {
-               if (client.player != null && client.gui.screen() == null) client.gui.setScreen(new HudEditor());
+                if (client.player != null && client.gui.screen() == null) client.gui.setScreen(new HudEditor());
             }
         });
 
