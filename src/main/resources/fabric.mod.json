@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "cocovis",
+  "version": "${version}",
+  "name": "CocoVis",
+  "description": "Меню визуалов (клиентский мод).",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.coco.cocovis.CocoVisClient"] },
+  "depends": { "fabricloader": "*", "fabric-api": "*", "minecraft": "*" }
+}
