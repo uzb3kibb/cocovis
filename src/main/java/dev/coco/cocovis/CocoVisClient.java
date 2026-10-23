@@ -23,17 +23,17 @@ public class CocoVisClient implements ClientModInitializer {
                 Identifier.fromNamespaceAndPath(ID, "main"));
 
         KeyMapping openMenu = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.cocovis.menu", InputConstants.KEY_RIGHTSHIFT, category));
+                new KeyMapping("key.cocovis.menu", InputConstants.KEY_RSHIFT, category));
         KeyMapping editHud = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.cocovis.edit_hud", InputConstants.KEY_K, category));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             DiamondTracker.tick(client);
             while (openMenu.consumeClick()) {
-                if (client.gui.screen() == null) client.setScreen(new VisualsScreen());
+                if (client.gui.screen() == null)client.gui.setScreen(new VisualsScreen());
             }
             while (editHud.consumeClick()) {
-                if (client.player != null && client.gui.screen() == null) client.setScreen(new HudEditor());
+                if (client.player != null && client.gui.screen() == null) lient.gui.setScreen(new HudEditor());
             }
         });
 
