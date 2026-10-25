@@ -1,18 +1,16 @@
 package dev.coco.cocovis;
 
+import dev.coco.cocovis.gui.Ui;
 import dev.coco.cocovis.module.ModuleManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/** Маленькая панель Watermark / FPS / Coords + вызов панели алмазов и тостов. */
+/** Карточки Watermark / FPS / Coords в том же стиле, что и меню, + вызов панели алмазов и тостов. */
 public final class HudRenderer {
-    private static final int BG = 0xAA101014;
-    private static final int ACCENT = 0xFF5CC8FF;
-    private static final int TEXT = 0xFFFFFFFF;
+    private static final int WHITE = 0xFFFFFFFF;
+    private static final int MUTED = 0xFF8E99A6;
 
     private HudRenderer() {}
 
@@ -20,32 +18,33 @@ public final class HudRenderer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        // панель алмазов и тосты не рисуем здесь поверх вторично — они в DiamondHud
         DiamondHud.render(g, delta);
 
-        List<String> lines = new ArrayList<>();
-        if (ModuleManager.WATERMARK.isEnabled()) lines.add("CocoVis");
-        if (ModuleManager.FPS.isEnabled()) lines.add(mc.getFps() + " FPS");
-        if (ModuleManager.COORDS.isEnabled()) {
-            lines.add(String.format("XYZ %.0f %.0f %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ()));
-        }
-        if (lines.isEmpty()) return;
-
-        // под панелью алмазов, чтобы не наезжали друг на друга
-        int width = 0;
-        for (String s : lines) width = Math.max(width, mc.font.width(s));
+        Font f = mc.font;
         int x = 6;
-        int y = ModuleManager.DIAMONDS.isEnabled()
-                ? DiamondHud.boundsY + DiamondHud.boundsH + 6
-                : 6;
-        int h = lines.size() * 11 + 6;
+        int y = ModuleManager.DIAMONDS.isEnabled() ? DiamondHud.boundsY + DiamondHud.boundsH + 6 : 6;
 
-        g.fill(x, y, x + width + 10, y + h, BG);
-        g.fill(x, y, x + 2, y + h, ACCENT);
-        int ty = y + 4;
-        for (String s : lines) {
-            g.text(mc.font, s, x + 6, ty, TEXT, true);
-            ty += 11;
+        if (ModuleManager.WATERMARK.isEnabled()) {
+            int w = f.width("CocoVis") + 24;
+            Ui.roundFill(g, x, y, w, 18, 6, DiamondHud.PANEL);
+            Ui.roundFill(g, x + 7, y + 6, 6, 6, 3, DiamondHud.ACCENT);
+            g.text(f, "CocoVis", x + 18, y + 5, WHITE, true);
+            y += 22;
         }
+        if (ModuleManager.FPS.isEnabled()) {
+            y += chip(g, f, x, y, "FPS", String.valueOf(mc.getFps()));
+        }
+        if (ModuleManager.COORDS.isEnabled()) {
+            String xyz = String.format("%.0f %.0f %.0f", mc.player.getX(), mc.player.getY(), mc.player.getZ());
+            y += chip(g, f, x, y, "XYZ", xyz);
+        }
+    }
+
+    private static int chip(GuiGraphicsExtractor g, Font f, int x, int y, String label, String value) {
+        int w = f.width(label) + f.width(value) + 22;
+        Ui.roundFill(g, x, y, w, 18, 6, DiamondHud.PANEL);
+        g.text(f, label, x + 7, y + 5, MUTED, false);
+        g.text(f, value, x + 7 + f.width(label) + 6, y + 5, WHITE, true);
+        return 22;
     }
 }

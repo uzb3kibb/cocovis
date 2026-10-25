@@ -35,6 +35,7 @@ public class VisualsScreen extends Screen {
     private long lastNs = System.nanoTime();
     private final Map<Module, Float> anim = new IdentityHashMap<>();
     private ItemStack[] icons;
+    private int mX, mY, nClick, lastBtn;
 
     // раскладка (пересчитывается каждый кадр)
     private int x0, y0, w, h, sbX, sbY, sbW, sbH, cX, cY, cW, listTop, listBottom;
@@ -78,6 +79,8 @@ public class VisualsScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         layout();
+        mX = mouseX;
+        mY = mouseY;
         Font f = font;
         long now = System.nanoTime();
         float dt = Math.min(0.1f, (now - lastNs) / 1_000_000_000f);
@@ -126,10 +129,10 @@ public class VisualsScreen extends Screen {
             g.text(f, "Поиск: " + query, cX + 4, cY + 4, TEXT, true);
             g.text(f, "Найдено: " + visible().size(), cX + 4, cY + 16, MUTED, false);
         }
-        int sw = 112, sh = 16, sx = cX + cW - sw, sy = cY + 4;
+        int sw = 96, sh = 16, sx = cX + cW - sw, sy = cY + 4;
         Ui.roundFill(g, sx, sy, sw, sh, 6, CARD);
         boolean blink = (System.currentTimeMillis() / 500) % 2 == 0;
-        String shown = query.isEmpty() ? "Печатай для поиска..." : query + (blink ? "_" : "");
+        String shown = query.isEmpty() ? "Поиск..." : query + (blink ? "_" : "");
         g.text(f, shown, sx + 6, sy + 4, query.isEmpty() ? MUTED : TEXT, false);
         g.fill(cX, cY + 30, cX + cW, cY + 31, 0x22FFFFFF);
 
@@ -171,6 +174,8 @@ public class VisualsScreen extends Screen {
         }
         g.disableScissor();
 
+        g.text(f, "клики " + nClick + ", кнопка " + lastBtn + ", мышь " + mX + "," + mY, x0 + 4, y0 + h + 4, 0xFF555555, false);
+
         if (mods.isEmpty()) {
             String s = "Ничего не найдено";
             g.text(f, s, cX + cW / 2 - f.width(s) / 2, listTop + 30, MUTED, false);
@@ -179,9 +184,12 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) return super.mouseClicked(event, doubleClick);
+        // кнопку не проверяем: в 26.3 коды кнопок мыши изменились (SDL).
+        // Позицию берём из кадра отрисовки — она точно в GUI-координатах.
+        nClick++;
+        lastBtn = event.button();
         layout();
-        double mx = event.x(), my = event.y();
+        double mx = mX, my = mY;
 
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
             int ry = sbY + 46 + i * (CAT_H + 2);
