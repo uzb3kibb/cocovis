@@ -3,6 +3,7 @@ package dev.coco.cocovis.module;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 public class Module {
@@ -10,6 +11,8 @@ public class Module {
     public final String description;
     private boolean enabled;
     private final Consumer<Boolean> onChange;
+    /** Если задано — состояние берётся отсюда (для модулей, которыми владеет другой мод). */
+    private BooleanSupplier state;
     /** Если задано — в меню появится кнопка «Настроить». */
     public Runnable settings;
     public Item icon = Items.PAPER;
@@ -35,10 +38,18 @@ public class Module {
         return this;
     }
 
-    public boolean isEnabled() { return enabled; }
+    public Module withState(BooleanSupplier s) {
+        this.state = s;
+        return this;
+    }
+
+    public boolean isEnabled() {
+        return state != null ? state.getAsBoolean() : enabled;
+    }
 
     public void toggle() {
-        enabled = !enabled;
-        if (onChange != null) onChange.accept(enabled);
+        boolean next = !isEnabled();
+        if (state == null) enabled = next;
+        if (onChange != null) onChange.accept(next);
     }
 }

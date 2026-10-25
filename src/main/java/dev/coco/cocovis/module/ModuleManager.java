@@ -1,6 +1,7 @@
 package dev.coco.cocovis.module;
 
 import dev.coco.cocovis.DiamondConfig;
+import dev.coco.cocovis.MotionBlurBridge;
 import dev.coco.cocovis.gui.HudEditor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.Item;
@@ -26,9 +27,17 @@ public final class ModuleManager {
     public static final Module TOASTS    = new Module("Diamond Toasts", "Уведомление при изменении суммы алмазов",
             CFG.showToasts, v -> { CFG.showToasts = v; DiamondConfig.save(); }).withIcon(Items.BELL);
 
+    public static final Module MOTION_BLUR = new Module("Motion Blur",
+            MotionBlurBridge.isAvailable() ? "Плавное размытие движения (Natural Motion Blur, Pasi)" : "Мод Natural Motion Blur не найден",
+            false, MotionBlurBridge::setEnabled)
+            .withState(MotionBlurBridge::isEnabled)
+            .withSettings(MotionBlurBridge::openConfig)
+            .withIcon(Items.ENDER_PEARL);
+
     public static final List<Category> CATEGORIES = List.of(
             new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),
-            new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS))
+            new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS)),
+            new Category("Эффекты", "Постобработка картинки", Items.ENDER_PEARL, List.of(MOTION_BLUR))
     );
 
     public static List<Module> all() {

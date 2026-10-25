@@ -9,7 +9,11 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
+import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 public class CocoVisClient implements ClientModInitializer {
@@ -38,6 +42,15 @@ public class CocoVisClient implements ClientModInitializer {
         });
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
+
+        // 3D-ножи Huntsman вместо деревянного/железного/алмазного/незеритового мечей.
+        // Это встроенный ресурспак: включается по умолчанию, отключается в «Ресурспаках».
+        FabricLoader.getInstance().getModContainer(ID).ifPresent(container ->
+                ResourceLoader.registerBuiltinPack(
+                        Identifier.fromNamespaceAndPath(ID, "huntsman"),
+                        container,
+                        Component.literal("CocoVis: Huntsman Knives"),
+                        PackActivationType.DEFAULT_ENABLED));
 
         HudElementRegistry.attachElementBefore(
                 VanillaHudElements.CHAT,

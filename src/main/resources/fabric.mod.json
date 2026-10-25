@@ -3,8 +3,21 @@
   "id": "cocovis",
   "version": "${version}",
   "name": "CocoVis",
-  "description": "Меню визуалов (клиентский мод).",
+  "description": "Меню визуалов, панели HUD, ножи Huntsman. Включает Natural Motion Blur (LGPL-3.0, автор Pasi).",
   "environment": "client",
-  "entrypoints": { "client": ["dev.coco.cocovis.CocoVisClient"] },
-  "depends": { "fabricloader": "*", "fabric-api": "*", "minecraft": "*" }
+  "entrypoints": {
+    "client": [
+      "dev.coco.cocovis.CocoVisClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*"
+  },
+  "jars": [
+    {
+      "file": "META-INF/jars/naturalmotionblur-1.4.5.jar"
+    }
+  ]
 }
