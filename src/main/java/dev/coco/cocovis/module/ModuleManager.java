@@ -14,17 +14,17 @@ public final class ModuleManager {
 
     private static final DiamondConfig CFG = DiamondConfig.get();
 
-    public static final Module WATERMARK = new Module("Watermark", "Надпись CocoVis в углу экрана", true);
-    public static final Module COORDS    = new Module("Coords", "Координаты игрока", true);
-    public static final Module FPS       = new Module("FPS", "Счётчик кадров в секунду", false);
+    public static final Module WATERMARK = new Module("Watermark", "Надпись CocoVis в углу экрана", true).withIcon(Items.NAME_TAG);
+    public static final Module COORDS    = new Module("Coords", "Координаты игрока", true).withIcon(Items.COMPASS);
+    public static final Module FPS       = new Module("FPS", "Счётчик кадров в секунду", false).withIcon(Items.CLOCK);
 
     public static final Module DIAMONDS  = new Module("Diamond HUD", "Панель алмазов: инвентарь, сундуки, эндер-сундук",
             CFG.showHud, v -> { CFG.showHud = v; DiamondConfig.save(); })
-            .withSettings(() -> Minecraft.getInstance().gui.setScreen(new HudEditor()));
+            .withSettings(() -> Minecraft.getInstance().gui.setScreen(new HudEditor())).withIcon(Items.DIAMOND);
     public static final Module TOOLTIP   = new Module("Price Tooltip", "Цена предмета в алмазах в подсказке",
-            CFG.showTooltips, v -> { CFG.showTooltips = v; DiamondConfig.save(); });
+            CFG.showTooltips, v -> { CFG.showTooltips = v; DiamondConfig.save(); }).withIcon(Items.GOLD_NUGGET);
     public static final Module TOASTS    = new Module("Diamond Toasts", "Уведомление при изменении суммы алмазов",
-            CFG.showToasts, v -> { CFG.showToasts = v; DiamondConfig.save(); });
+            CFG.showToasts, v -> { CFG.showToasts = v; DiamondConfig.save(); }).withIcon(Items.BELL);
 
     public static final List<Category> CATEGORIES = List.of(
             new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),

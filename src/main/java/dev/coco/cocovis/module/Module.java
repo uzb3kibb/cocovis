@@ -1,5 +1,8 @@
 package dev.coco.cocovis.module;
 
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+
 import java.util.function.Consumer;
 
 public class Module {
@@ -9,6 +12,7 @@ public class Module {
     private final Consumer<Boolean> onChange;
     /** Если задано — в меню появится кнопка «Настроить». */
     public Runnable settings;
+    public Item icon = Items.PAPER;
 
     public Module(String name, String description, boolean enabled) {
         this(name, description, enabled, null);
@@ -23,6 +27,11 @@ public class Module {
 
     public Module withSettings(Runnable r) {
         this.settings = r;
+        return this;
+    }
+
+    public Module withIcon(Item item) {
+        this.icon = item;
         return this;
     }
 

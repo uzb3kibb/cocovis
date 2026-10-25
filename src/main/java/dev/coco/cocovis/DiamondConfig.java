@@ -24,6 +24,10 @@ public class DiamondConfig {
     public int toastDurationTicks = 70;
     public boolean silentAfterScreen = false;
     public boolean showTooltips = true;
+    /** Инфо-панель (Watermark/FPS/Coords). -1 = автоматически под панелью алмазов. */
+    public int infoX = -1;
+    public int infoY = -1;
+    public float infoScale = 1.0f;
     public Map<String, Double> prices = new LinkedHashMap<>();
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
