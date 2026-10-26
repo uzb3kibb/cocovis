@@ -9,11 +9,8 @@ import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
-import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType;
-import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 public class CocoVisClient implements ClientModInitializer {
@@ -31,8 +28,13 @@ public class CocoVisClient implements ClientModInitializer {
         KeyMapping editHud = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.cocovis.edit_hud", InputConstants.KEY_K, category));
 
+        // служебная клавиша для ножей Huntsman: должна быть зарегистрирована до загрузки ресурсов
+        Huntsman.register(category);
+
+        ClientTickEvents.START_CLIENT_TICK.register(client -> Huntsman.apply());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             DiamondTracker.tick(client);
+            Huntsman.apply();
             while (openMenu.consumeClick()) {
                 if (client.gui.screen() == null) client.gui.setScreen(new VisualsScreen());
             }
@@ -40,17 +42,10 @@ public class CocoVisClient implements ClientModInitializer {
                 if (client.player != null && client.gui.screen() == null) client.gui.setScreen(new HudEditor());
             }
         });
+        // при открытии любого экрана игра отпускает все клавиши — возвращаем состояние сразу
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> Huntsman.apply());
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
-
-        // 3D-ножи Huntsman вместо деревянного/железного/алмазного/незеритового мечей.
-        // Это встроенный ресурспак: включается по умолчанию, отключается в «Ресурспаках».
-        FabricLoader.getInstance().getModContainer(ID).ifPresent(container ->
-                ResourceLoader.registerBuiltinPack(
-                        Identifier.fromNamespaceAndPath(ID, "huntsman"),
-                        container,
-                        Component.literal("CocoVis: Huntsman Knives"),
-                        PackActivationType.DEFAULT_ENABLED));
 
         HudElementRegistry.attachElementBefore(
                 VanillaHudElements.CHAT,

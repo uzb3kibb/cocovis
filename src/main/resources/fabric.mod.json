@@ -3,7 +3,7 @@
   "id": "cocovis",
   "version": "${version}",
   "name": "CocoVis",
-  "description": "Меню визуалов, панели HUD, ножи Huntsman. Включает Natural Motion Blur (LGPL-3.0, автор Pasi).",
+  "description": "Меню визуалов, панели HUD, уведомления об алмазах, 3D-ножи Huntsman. Включает Natural Motion Blur (LGPL-3.0, автор Pasi).",
   "environment": "client",
   "entrypoints": {
     "client": [

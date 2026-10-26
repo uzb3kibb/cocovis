@@ -1,6 +1,7 @@
 package dev.coco.cocovis.module;
 
 import dev.coco.cocovis.DiamondConfig;
+import dev.coco.cocovis.Huntsman;
 import dev.coco.cocovis.MotionBlurBridge;
 import dev.coco.cocovis.gui.HudEditor;
 import net.minecraft.client.Minecraft;
@@ -34,9 +35,16 @@ public final class ModuleManager {
             .withSettings(MotionBlurBridge::openConfig)
             .withIcon(Items.ENDER_PEARL);
 
+    public static final Module HUNTSMAN = new Module("Huntsman Knives",
+            "3D-нож Huntsman вместо деревянного, железного, алмазного и незеритового мечей",
+            CFG.huntsmanKnives, Huntsman::setEnabled)
+            .withState(Huntsman::isEnabled)
+            .withIcon(Items.DIAMOND_SWORD);
+
     public static final List<Category> CATEGORIES = List.of(
             new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),
             new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS)),
+            new Category("Предметы", "Модели и внешний вид", Items.DIAMOND_SWORD, List.of(HUNTSMAN)),
             new Category("Эффекты", "Постобработка картинки", Items.ENDER_PEARL, List.of(MOTION_BLUR))
     );
 

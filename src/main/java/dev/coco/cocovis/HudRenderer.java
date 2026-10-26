@@ -9,6 +9,7 @@ public final class HudRenderer {
     private HudRenderer() {}
 
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
+        Huntsman.apply();
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         DiamondHud.render(g, delta);

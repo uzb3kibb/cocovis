@@ -1,5 +1,6 @@
 {
   "key.category.cocovis.main": "CocoVis",
   "key.cocovis.menu": "Открыть меню CocoVis",
-  "key.cocovis.edit_hud": "Настроить панель алмазов (двигать и менять размер)"
+  "key.cocovis.edit_hud": "Настроить HUD (двигать панели и уведомления)",
+  "key.cocovis.huntsman": "CocoVis: служебная клавиша ножей (не назначать)"
 }

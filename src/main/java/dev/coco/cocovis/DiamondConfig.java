@@ -28,6 +28,11 @@ public class DiamondConfig {
     public int infoX = -1;
     public int infoY = -1;
     public float infoScale = 1.0f;
+    /** Позиция уведомлений об алмазах (левый верхний угол первого). -1 = по умолчанию, справа сверху. */
+    public int toastX = -1;
+    public int toastY = -1;
+    /** Ножи Huntsman вместо мечей. */
+    public boolean huntsmanKnives = true;
     public Map<String, Double> prices = new LinkedHashMap<>();
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

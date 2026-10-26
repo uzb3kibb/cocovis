@@ -2,6 +2,7 @@ package dev.coco.cocovis.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.coco.cocovis.module.Module;
+import net.fabricmc.loader.api.FabricLoader;
 import dev.coco.cocovis.module.ModuleManager;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -21,6 +22,8 @@ import java.util.Map;
 public class VisualsScreen extends Screen {
     private static final int ROW_H = 46, GAP = 8, CAT_H = 26, CAT_GAP = 3;
     private static final int TOG_W = 34, TOG_H = 18, SET_W = 62;
+    private static final String VERSION = FabricLoader.getInstance().getModContainer("cocovis")
+            .map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("dev");
 
     private int catIndex = 0;
     private String query = "";
@@ -122,7 +125,7 @@ public class VisualsScreen extends Screen {
         Ui.roundOutline(g, sbX, sbY, sbW, sbH, 9, c(0x18FFFFFF));
         bigText(g, "Coco", sbX + 12, sbY + 11, 1.5f, c(Ui.TEXT));
         bigText(g, "Vis", sbX + 12 + Math.round(f.width("Coco") * 1.5f), sbY + 11, 1.5f, c(Ui.ACCENT));
-        g.text(f, "visuals · 0.1", sbX + 12, sbY + 28, c(Ui.DIM), false);
+        g.text(f, "visuals · v" + VERSION, sbX + 12, sbY + 28, c(Ui.DIM), false);
         Ui.hBar(g, sbX + 12, sbY + 40, 26, 2, c(Ui.ACCENT), c(Ui.ACCENT2));
 
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {

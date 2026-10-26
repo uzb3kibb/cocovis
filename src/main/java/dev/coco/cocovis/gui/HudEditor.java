@@ -11,9 +11,9 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-/** Редактор HUD: зажми любую панель и тяни, колесо мыши над панелью — размер, R — сброс. */
+/** Редактор HUD: зажми панель или уведомление и тяни, колесо мыши над панелью — размер, R — сброс. */
 public class HudEditor extends Screen {
-    private static final int DIAMOND = 0, INFO = 1;
+    private static final int DIAMOND = 0, INFO = 1, TOAST = 2;
 
     private boolean dragging;
     private int target = -1;
@@ -36,10 +36,13 @@ public class HudEditor extends Screen {
         cfg.infoX = -1;
         cfg.infoY = -1;
         cfg.infoScale = 1.0f;
+        cfg.toastX = -1;
+        cfg.toastY = -1;
     }
 
-    /** Какая панель под курсором: INFO сверху, затем DIAMOND, иначе -1. */
+    /** Что под курсором: уведомление выше всего, затем инфо-панель, затем панель алмазов. */
     private int panelAt(int mx, int my) {
+        if (Ui.inside(mx, my, DiamondHud.toastBoundsX, DiamondHud.toastBoundsY, DiamondHud.toastBoundsW, DiamondHud.toastBoundsH)) return TOAST;
         if (Ui.inside(mx, my, InfoHud.boundsX, InfoHud.boundsY, InfoHud.boundsW, InfoHud.boundsH)) return INFO;
         if (Ui.inside(mx, my, DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH)) return DIAMOND;
         return -1;
@@ -53,12 +56,16 @@ public class HudEditor extends Screen {
         lastY = mY;
         posX = Math.max(0, Math.min(width - 20, posX));
         posY = Math.max(0, Math.min(height - 20, posY));
+        int x = (int) Math.round(posX), y = (int) Math.round(posY);
         if (target == DIAMOND) {
-            cfg.hudX = (int) Math.round(posX);
-            cfg.hudY = (int) Math.round(posY);
+            cfg.hudX = x;
+            cfg.hudY = y;
         } else if (target == INFO) {
-            cfg.infoX = (int) Math.round(posX);
-            cfg.infoY = (int) Math.round(posY);
+            cfg.infoX = x;
+            cfg.infoY = y;
+        } else if (target == TOAST) {
+            cfg.toastX = x;
+            cfg.toastY = y;
         }
     }
 
@@ -83,12 +90,17 @@ public class HudEditor extends Screen {
             if (p == DIAMOND) {
                 posX = cfg.hudX;
                 posY = cfg.hudY;
-            } else {
+            } else if (p == INFO) {
                 // из «автоматического» положения переходим в явное
                 posX = InfoHud.boundsX;
                 posY = InfoHud.boundsY;
                 cfg.infoX = InfoHud.boundsX;
                 cfg.infoY = InfoHud.boundsY;
+            } else {
+                posX = DiamondHud.toastBoundsX;
+                posY = DiamondHud.toastBoundsY;
+                cfg.toastX = DiamondHud.toastBoundsX;
+                cfg.toastY = DiamondHud.toastBoundsY;
             }
             return true;
         }
@@ -105,7 +117,8 @@ public class HudEditor extends Screen {
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
         DiamondConfig cfg = DiamondConfig.get();
         int p = panelAt(mX, mY);
-        if (p < 0) p = target < 0 ? DIAMOND : target;
+        if (p == TOAST) return true;               // размер уведомления не меняется
+        if (p < 0) p = (target == DIAMOND || target == INFO) ? target : DIAMOND;
         float k = 1.0f + 0.08f * (float) scrollY;
         if (p == DIAMOND) cfg.hudScale = Math.max(0.5f, Math.min(3.0f, cfg.hudScale * k));
         else cfg.infoScale = Math.max(0.5f, Math.min(3.0f, cfg.infoScale * k));
@@ -132,18 +145,20 @@ public class HudEditor extends Screen {
 
         DiamondHud.drawPanel(g, minecraft);
         InfoHud.draw(g, minecraft, true);
+        DiamondHud.drawToastPreview(g, minecraft);
 
         // подсветка: под курсором / перетаскиваемая — яркая, остальные — тонкая рамка
         int hover = dragging ? target : panelAt(mouseX, mouseY);
         outline(g, DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH, hover == DIAMOND);
         outline(g, InfoHud.boundsX, InfoHud.boundsY, InfoHud.boundsW, InfoHud.boundsH, hover == INFO);
+        outline(g, DiamondHud.toastBoundsX, DiamondHud.toastBoundsY, DiamondHud.toastBoundsW, DiamondHud.toastBoundsH, hover == TOAST);
 
         // кнопки
         button(g, f, "Сбросить", resetX(), btnY(), Ui.inside(mouseX, mouseY, resetX(), btnY(), 96, 20), false);
         button(g, f, "Готово", doneX(), btnY(), Ui.inside(mouseX, mouseY, doneX(), btnY(), 96, 20), true);
 
         DiamondConfig cfg = DiamondConfig.get();
-        String l1 = "Зажми панель и тяни  ·  колесо над панелью: размер  ·  R: сброс  ·  Esc: сохранить и выйти";
+        String l1 = "Зажми панель или уведомление и тяни  ·  колесо над панелью: размер  ·  R: сброс  ·  Esc: сохранить и выйти";
         String l2 = "Алмазы " + Math.round(cfg.hudScale * 100) + "%   ·   Инфо-панель " + Math.round(cfg.infoScale * 100) + "%";
         g.text(f, l1, width / 2 - f.width(l1) / 2, btnY() - 24, Ui.MUTED, true);
         g.text(f, l2, width / 2 - f.width(l2) / 2, btnY() - 12, Ui.DIM, false);

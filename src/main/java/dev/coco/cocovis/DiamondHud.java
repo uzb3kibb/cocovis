@@ -19,6 +19,9 @@ public final class DiamondHud {
     /** Границы панели в GUI-координатах (для редактора). */
     public static int boundsX, boundsY, boundsW = W, boundsH = 40;
 
+    /** Границы уведомления в GUI-координатах (предпросмотр в редакторе). */
+    public static int toastBoundsX, toastBoundsY, toastBoundsW = 96, toastBoundsH = 30;
+
     private static ItemStack diamondIcon, chestIcon, enderIcon;
 
     private record Row(ItemStack icon, String label, int value) {}
@@ -94,7 +97,8 @@ public final class DiamondHud {
 
         Font font = mc.font;
         int screenW = mc.getWindow().getGuiScaledWidth();
-        int y = 6;
+        boolean custom = cfg.toastX >= 0;
+        int y = cfg.toastY >= 0 ? cfg.toastY : 6;
         for (DiamondTracker.Toast t : DiamondTracker.TOASTS) {
             long age = now - t.createdMs;
             double slide = 1.0;
@@ -106,17 +110,43 @@ public final class DiamondHud {
             int n = Math.abs(t.delta);
             String title = (t.delta > 0 ? "+" : "-") + n + " " + plural(n);
             String sub = "Всего: " + t.total;
-            int w = Math.max(font.width(title), font.width(sub)) + 28;
-            int h = 30;
-            int x = screenW - (int) ((w + 8) * slide);
-            int col = t.delta > 0 ? Ui.GOOD : Ui.BAD;
-
-            Ui.panel(g, x, y, w, h, 8, Ui.PANEL_TOP, Ui.PANEL_BOT);
-            Ui.roundGradient(g, x + 6, y + 7, 3, h - 14, 1, col, Ui.mix(col, 0xFF000000, 0.35f));
-            g.text(font, title, x + 15, y + 6, col, true);
-            g.text(font, sub, x + 15, y + 17, Ui.MUTED, false);
-            y += h + 6;
+            int w = toastWidth(font, title, sub);
+            int x = custom
+                    ? cfg.toastX + (int) ((1 - slide) * 24)          // своё место: чуть выезжает справа
+                    : screenW - (int) ((w + 8) * slide);               // по умолчанию: выезжает из-за правого края
+            toastCard(g, font, x, y, w, title, sub, t.delta > 0 ? Ui.GOOD : Ui.BAD);
+            y += TOAST_H + 6;
         }
+    }
+
+    private static final int TOAST_H = 30;
+
+    private static int toastWidth(Font font, String title, String sub) {
+        return Math.max(font.width(title), font.width(sub)) + 28;
+    }
+
+    private static void toastCard(GuiGraphicsExtractor g, Font font, int x, int y, int w, String title, String sub, int col) {
+        Ui.panel(g, x, y, w, TOAST_H, 8, Ui.PANEL_TOP, Ui.PANEL_BOT);
+        Ui.roundGradient(g, x + 6, y + 7, 3, TOAST_H - 14, 1, col, Ui.mix(col, 0xFF000000, 0.35f));
+        g.text(font, title, x + 15, y + 6, col, true);
+        g.text(font, sub, x + 15, y + 17, Ui.MUTED, false);
+    }
+
+    /** Образец уведомления для редактора: стоит там, где будут появляться настоящие. */
+    public static void drawToastPreview(GuiGraphicsExtractor g, Minecraft mc) {
+        DiamondConfig cfg = DiamondConfig.get();
+        Font font = mc.font;
+        String title = "+5 алмазов";
+        String sub = "Всего: 12";
+        int w = toastWidth(font, title, sub);
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int x = cfg.toastX >= 0 ? cfg.toastX : screenW - w - 6;
+        int y = cfg.toastY >= 0 ? cfg.toastY : 6;
+        toastBoundsX = x;
+        toastBoundsY = y;
+        toastBoundsW = w;
+        toastBoundsH = TOAST_H;
+        toastCard(g, font, x, y, w, title, sub, Ui.GOOD);
     }
 
     private static String plural(int n) {
