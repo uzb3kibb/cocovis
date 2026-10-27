@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.HumanoidArm;
+import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -14,6 +15,8 @@ import org.joml.Vector3f;
 public final class KnifeAnimations {
     /** Направление вдоль клинка в системе камеры при обычном хвате. */
     private static final Vector3f BLADE_AXIS = new Vector3f(-0.93f, 0.33f, -0.16f).normalize();
+
+    private static boolean logged = false;
 
     private KnifeAnimations() {}
 
@@ -29,6 +32,10 @@ public final class KnifeAnimations {
     /** Хват: вызывается после того, как игра поставила предмет в точку руки (applyItemArmTransform). */
     public static void hold(PoseStack ps, HumanoidArm arm, float equip) {
         if (!animate(arm)) return;
+        if (!logged) {
+            logged = true;
+            System.out.println("[cocovis] хук анимаций ножа работает");
+        }
 
         // лёгкое «дыхание» ножа в руке
         double t = System.nanoTime() / 1.0e9;
@@ -56,7 +63,7 @@ public final class KnifeAnimations {
         ps.translate(-0.30f * up, 0.17f * up, 0.10f * up);
         rotZ(ps, -72f * up);
         rotX(ps, -14f * wob);
-        ps.mulPose(new Quaternionf().rotationAxis((float) Math.toRadians(spin), BLADE_AXIS.x, BLADE_AXIS.y, BLADE_AXIS.z));
+        mul(ps, new Quaternionf().rotationAxis((float) Math.toRadians(spin), BLADE_AXIS.x, BLADE_AXIS.y, BLADE_AXIS.z));
     }
 
     /** Взмах: замах вправо, рубящий удар влево, возврат. Возвращает true, если стандартную анимацию нужно отменить. */
@@ -84,15 +91,20 @@ public final class KnifeAnimations {
         return x * x * (3f - 2f * x);
     }
 
+    /** В 26.3 у PoseStack нет mulPose(Quaternionf): умножаем на матрицу поворота. */
+    private static void mul(PoseStack ps, Quaternionf q) {
+        ps.mulPose(new Matrix4f().rotation(q));
+    }
+
     private static void rotX(PoseStack ps, float deg) {
-        ps.mulPose(new Quaternionf().rotationX((float) Math.toRadians(deg)));
+        mul(ps, new Quaternionf().rotationX((float) Math.toRadians(deg)));
     }
 
     private static void rotY(PoseStack ps, float deg) {
-        ps.mulPose(new Quaternionf().rotationY((float) Math.toRadians(deg)));
+        mul(ps, new Quaternionf().rotationY((float) Math.toRadians(deg)));
     }
 
     private static void rotZ(PoseStack ps, float deg) {
-        ps.mulPose(new Quaternionf().rotationZ((float) Math.toRadians(deg)));
+        mul(ps, new Quaternionf().rotationZ((float) Math.toRadians(deg)));
     }
 }
