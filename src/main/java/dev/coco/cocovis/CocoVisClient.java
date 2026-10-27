@@ -28,13 +28,16 @@ public class CocoVisClient implements ClientModInitializer {
         KeyMapping editHud = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.cocovis.edit_hud", InputConstants.KEY_K, category));
 
-        // служебная клавиша для ножей Huntsman: должна быть зарегистрирована до загрузки ресурсов
-        Huntsman.register(category);
+        // служебные клавиши выбора ножа и клавиша осмотра: должны быть зарегистрированы до загрузки ресурсов
+        Knives.register(category);
 
-        ClientTickEvents.START_CLIENT_TICK.register(client -> Huntsman.apply());
+        ClientTickEvents.START_CLIENT_TICK.register(client -> Knives.apply());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             DiamondTracker.tick(client);
-            Huntsman.apply();
+            Knives.apply();
+            while (Knives.inspectKey().consumeClick()) {
+                if (client.gui.screen() == null) Knives.startInspect();
+            }
             while (openMenu.consumeClick()) {
                 if (client.gui.screen() == null) client.gui.setScreen(new VisualsScreen());
             }
@@ -43,7 +46,7 @@ public class CocoVisClient implements ClientModInitializer {
             }
         });
         // при открытии любого экрана игра отпускает все клавиши — возвращаем состояние сразу
-        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> Huntsman.apply());
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> Knives.apply());
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
 

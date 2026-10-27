@@ -1,0 +1,7 @@
+{
+  "parent": "cocovis:item/huntsman_base",
+  "textures": {
+    "0": "cocovis:item/huntsman_dark",
+    "particle": "cocovis:item/huntsman_dark"
+  }
+}

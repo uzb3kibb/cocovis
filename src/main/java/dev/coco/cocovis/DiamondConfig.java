@@ -31,8 +31,12 @@ public class DiamondConfig {
     /** Позиция уведомлений об алмазах (левый верхний угол первого). -1 = по умолчанию, справа сверху. */
     public int toastX = -1;
     public int toastY = -1;
-    /** Ножи Huntsman вместо мечей. */
-    public boolean huntsmanKnives = true;
+    /** Ножи вместо мечей включены. */
+    public boolean knivesOn = true;
+    /** Выбранный скин Huntsman: vanilla, rust, sapphire, dark, auto. */
+    public String huntsmanSkin = "vanilla";
+    /** Свои анимации ножа (хват, взмах, выхват, осмотр). */
+    public boolean knifeAnimations = true;
     public Map<String, Double> prices = new LinkedHashMap<>();
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

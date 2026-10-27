@@ -95,6 +95,26 @@ public final class Ui {
         }
     }
 
+    /** Маленький нож (рукоять слева, клинок справа), нарисованный заливками. */
+    public static void knifeGlyph(GuiGraphicsExtractor g, int x, int y, int w,
+                                  int bladeTop, int bladeBottom, int handleTop, int handleBottom, int guard) {
+        int hl = (int) (w * 0.34f);
+        roundGradient(g, x, y + 6, hl, 9, 3, handleTop, handleBottom);
+        g.fill(x + hl, y + 3, x + hl + 3, y + 18, guard);
+        int bx = x + hl + 3;
+        int bl = w - hl - 3;
+        for (int i = 0; i < bl; i++) {
+            float t = i / (float) bl;
+            float h = 12f;
+            if (t > 0.72f) h = 12f - 9f * ((t - 0.72f) / 0.28f);   // танто: кромка поднимается к острию
+            int hh = Math.max(2, Math.round(h));
+            int top = y + 4;
+            int mid = top + hh / 2;
+            g.fill(bx + i, top, bx + i + 1, mid, bladeTop);
+            g.fill(bx + i, mid, bx + i + 1, top + hh, bladeBottom);
+        }
+    }
+
     public static void circle(GuiGraphicsExtractor g, int cx, int cy, int rad, int color) {
         roundFill(g, cx - rad, cy - rad, rad * 2, rad * 2, rad, color);
     }

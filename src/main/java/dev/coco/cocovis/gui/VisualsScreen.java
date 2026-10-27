@@ -83,7 +83,44 @@ public class VisualsScreen extends Screen {
         List<Module> out = new ArrayList<>();
         String q = query.toLowerCase(Locale.ROOT);
         for (Module m : ModuleManager.all()) {
-            if (m.name.toLowerCase(Locale.ROOT).contains(q) || m.description.toLowerCase(Locale.ROOT).contains(q)) out.add(m);
+            if (m.name.toLowerCase(Locale.ROOT).contains(q) || m.description().toLowerCase(Locale.ROOT).contains(q)) out.add(m);
+        }
+        return out;
+    }
+
+    /** Обрезает строку многоточием, чтобы она влезла в maxW. */
+    private String fit(String s, int maxW) {
+        if (font.width(s) <= maxW) return s;
+        while (s.length() > 1 && font.width(s + "…") > maxW) s = s.substring(0, s.length() - 1);
+        return s + "…";
+    }
+
+    /** Переносит текст по словам не больше чем на maxLines строк; остаток заменяется многоточием. */
+    private List<String> wrap(String text, int maxW, int maxLines) {
+        List<String> out = new ArrayList<>();
+        String[] words = text.split(" ");
+        StringBuilder cur = new StringBuilder();
+        int i = 0;
+        for (; i < words.length; i++) {
+            String test = cur.length() == 0 ? words[i] : cur + " " + words[i];
+            if (font.width(test) <= maxW || cur.length() == 0) {
+                cur.setLength(0);
+                cur.append(test);
+            } else {
+                if (out.size() == maxLines - 1) break;   // последняя строка: дальше только обрезка
+                out.add(cur.toString());
+                cur.setLength(0);
+                cur.append(words[i]);
+            }
+        }
+        if (cur.length() > 0) {
+            if (i < words.length) {                       // остался непоместившийся хвост — склеиваем и режем многоточием
+                StringBuilder rest = new StringBuilder(cur);
+                for (int k = i; k < words.length; k++) rest.append(' ').append(words[k]);
+                out.add(fit(rest.toString(), maxW));
+            } else {
+                out.add(fit(cur.toString(), maxW));
+            }
         }
         return out;
     }
@@ -212,9 +249,6 @@ public class VisualsScreen extends Screen {
                     c(Ui.mix(0x44000000, 0x445CC8FF, a)), c(Ui.mix(0x33000000, 0x339B7BFF, a)));
             g.item(icon, cX + 18, ry + 15);
 
-            g.text(f, m.name, cX + 50, ry + 11, c(Ui.TEXT), true);
-            g.text(f, m.description, cX + 50, ry + 25, c(Ui.MUTED), false);
-
             // переключатель
             int px = cX + rw - TOG_W - 12, py = ry + (ROW_H - TOG_H) / 2;
             if (a > 0.01f) {
@@ -230,8 +264,22 @@ public class VisualsScreen extends Screen {
                 Ui.roundGradient(g, bx, py, SET_W, TOG_H, 7,
                         c(bh ? Ui.CARD_HOT_TOP : 0xFF263040), c(bh ? Ui.CARD_HOT_BOT : 0xFF1D2531));
                 Ui.roundOutline(g, bx, py, SET_W, TOG_H, 7, c(bh ? 0x885CC8FF : 0x30FFFFFF));
-                String s = "Настроить";
+                String s = m.settingsLabel;
                 g.text(f, s, bx + SET_W / 2 - f.width(s) / 2, py + 5, c(Ui.TEXT), false);
+            }
+
+            // название и описание: текст не должен заходить под кнопку и переключатель
+            int textX = cX + 50;
+            int limit = (m.settings != null ? px - 10 - SET_W : px) - 10;
+            int availW = Math.max(40, limit - textX);
+            List<String> lines = wrap(m.description(), availW, 2);
+            if (lines.size() <= 1) {
+                g.text(f, fit(m.name, availW), textX, ry + 11, c(Ui.TEXT), true);
+                if (!lines.isEmpty()) g.text(f, lines.get(0), textX, ry + 25, c(Ui.MUTED), false);
+            } else {
+                g.text(f, fit(m.name, availW), textX, ry + 7, c(Ui.TEXT), true);
+                g.text(f, lines.get(0), textX, ry + 19, c(Ui.MUTED), false);
+                g.text(f, lines.get(1), textX, ry + 29, c(Ui.MUTED), false);
             }
         }
         g.disableScissor();
