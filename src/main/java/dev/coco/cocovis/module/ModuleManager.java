@@ -41,15 +41,11 @@ public final class ModuleManager {
             .withDescription(Knives::describe)
             .withSettings("Каталог", () -> Minecraft.getInstance().gui.setScreen(new KnifeCatalogScreen()))
             .withIcon(Items.DIAMOND_SWORD);
-    public static final Module KNIFE_ANIMATIONS = new Module("Анимации ножа",
-            "Свой хват, взмах, выхват и осмотр ножа (клавиша H)",
-            DiamondConfig.get().knifeAnimations, v -> { DiamondConfig.get().knifeAnimations = v; DiamondConfig.save(); })
-            .withIcon(Items.CLOCK);
 
     public static final List<Category> CATEGORIES = List.of(
             new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),
             new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS)),
-            new Category("Ножи", "Каталог, скины и анимации", Items.DIAMOND_SWORD, List.of(KNIVES, KNIFE_ANIMATIONS)),
+            new Category("Ножи", "Каталог и скины", Items.DIAMOND_SWORD, List.of(KNIVES)),
             new Category("Эффекты", "Постобработка картинки", Items.ENDER_PEARL, List.of(MOTION_BLUR))
     );
 

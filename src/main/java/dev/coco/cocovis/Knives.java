@@ -23,7 +23,7 @@ public final class Knives {
             "Тёмный клинок, светлая рукоять",
             "По материалу меча: дерево, железо, алмаз, незерит"
     };
-    public static final long INSPECT_MS = 3400;
+    public static final long INSPECT_MS = 5100;
 
     private static final KeyMapping[] BITS = new KeyMapping[3];
     private static KeyMapping inspectKey;

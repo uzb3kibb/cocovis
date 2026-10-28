@@ -54,16 +54,25 @@ public final class KnifeAnimations {
         if (ip >= 0f) inspect(ps, ip);
     }
 
-    /** Осмотр: нож поднимается лезвием вверх, прокручивается вокруг своей оси и возвращается. */
+    /**
+     * Осмотр по кадрам CS2 (5,1 с): быстрый подброс лезвием вверх, показ лицом,
+     * две полные прокрутки вокруг клинка с наклоном влево и возврат в обычный хват.
+     */
     private static void inspect(PoseStack ps, float t) {
-        float up = smooth(t / 0.16f) * (1f - smooth((t - 0.84f) / 0.16f));
-        float phase = smooth((t - 0.16f) / 0.60f);
-        float spin = 360f * phase;
-        float wob = (float) Math.sin(phase * Math.PI);
+        float s = t * 5.1f;
+        float up = smooth(s / 0.30f) * (1f - smooth((s - 4.80f) / 0.30f));
+        float flick = 90f * (float) Math.sin(Math.PI * smooth(s / 0.5f));
+        float flick2 = 90f * (float) Math.sin(Math.PI * smooth((s - 4.6f) / 0.5f));
+        float spin = flick + 360f * smooth((s - 1.5f) / 0.4f) + 360f * smooth((s - 3.2f) / 0.4f) + flick2;
+        float lean = 4f * up + 10f * bump(s, 1.9f, 3.2f) + 6f * bump(s, 3.7f, 4.6f);
         ps.translate(-0.30f * up, 0.17f * up, 0.10f * up);
-        rotZ(ps, -72f * up);
-        rotX(ps, -14f * wob);
+        rotZ(ps, -72f * up + lean);
+        rotX(ps, -10f * up);
         mul(ps, new Quaternionf().rotationAxis((float) Math.toRadians(spin), BLADE_AXIS.x, BLADE_AXIS.y, BLADE_AXIS.z));
+    }
+
+    private static float bump(float s, float a, float b) {
+        return smooth((s - a) / 0.35f) * (1f - smooth((s - b) / 0.35f));
     }
 
     /** Взмах: замах вправо, рубящий удар влево, возврат. Возвращает true, если стандартную анимацию нужно отменить. */
