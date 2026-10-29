@@ -10,9 +10,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Подключает анимации ножа к рендеру предмета в руке.
+ * Хват, выхват, удар и осмотр ножа: подключается после того, как игра поставила предмет в точку руки.
  * В 26.3 класс называется FirstPersonHandsAndItemsRenderer (раньше ItemInHandRenderer), поэтому цели заданы строками.
- * Pseudo + require = 0: если класса или метода в этой версии нет, вставка молча пропускается, и мод работает без своих анимаций.
+ * Pseudo + require = 0: если класса или метода в этой версии нет, вставка молча пропускается.
  */
 @Pseudo
 @Mixin(targets = {
@@ -24,10 +24,5 @@ public abstract class ItemInHandRendererMixin {
     @Inject(method = "applyItemArmTransform", at = @At("TAIL"), require = 0)
     private void cocovis$hold(PoseStack poseStack, HumanoidArm arm, float equipProgress, CallbackInfo ci) {
         KnifeAnimations.hold(poseStack, arm, equipProgress);
-    }
-
-    @Inject(method = "applyItemArmAttackTransform", at = @At("HEAD"), cancellable = true, require = 0)
-    private void cocovis$attack(PoseStack poseStack, HumanoidArm arm, float swingProgress, CallbackInfo ci) {
-        if (KnifeAnimations.attack(poseStack, arm, swingProgress)) ci.cancel();
     }
 }

@@ -9,24 +9,42 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
- * Свои анимации ножа от первого лица: покачивание в руке, выхват, взмах и осмотр.
+ * Свои анимации ножа от первого лица: покачивание в руке, выхват, удар (два чередующихся взмаха) и осмотр.
  * Формулы совпадают с теми, по которым делался предпросмотр. Работает только для правой основной руки.
  */
 public final class KnifeAnimations {
     /** Направление вдоль клинка в системе камеры при обычном хвате. */
     private static final Vector3f BLADE_AXIS = new Vector3f(-0.93f, 0.33f, -0.16f).normalize();
+    private static final long SWING_MS = 340;
 
     private static boolean logged = false;
+    private static boolean swingLogged = false;
+    private static long swingStart = 0;
+    private static boolean armed = true;
+    private static boolean backhand = false;
 
     private KnifeAnimations() {}
 
     private static boolean animate(HumanoidArm arm) {
         if (arm != HumanoidArm.RIGHT) return false;
+        return ownsSwing();
+    }
+
+    /** Нож с анимациями в правой основной руке. Миксин взмаха по этому условию отменяет стандартный взмах. */
+    public static boolean ownsSwing() {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         if (p == null || !Knives.isActive() || !DiamondConfig.get().knifeAnimations) return false;
         if (p.getMainArm() != HumanoidArm.RIGHT) return false;
         return Knives.isCustomSword(p.getMainHandItem());
+    }
+
+    /** Вызывается из миксина при отмене стандартного взмаха — для проверки по журналу. */
+    public static void noteSwingHook() {
+        if (!swingLogged) {
+            swingLogged = true;
+            System.out.println("[cocovis] хук взмаха ножа работает");
+        }
     }
 
     /** Хват: вызывается после того, как игра поставила предмет в точку руки (applyItemArmTransform). */
@@ -50,8 +68,59 @@ public final class KnifeAnimations {
             rotY(ps, -14f * equip);
         }
 
+        float swing = swingProgress();
+        if (swing > 0f) {
+            Knives.cancelInspect();
+            strike(ps, swing);
+            return;
+        }
         float ip = Knives.inspectProgress();
         if (ip >= 0f) inspect(ps, ip);
+    }
+
+    /**
+     * Свой отсчёт взмаха: игра сообщает только о начале удара, дальше идём по реальному времени.
+     * Так анимация плавная при любом FPS и не зависит от скорости стандартного взмаха.
+     */
+    private static float swingProgress() {
+        LocalPlayer p = Minecraft.getInstance().player;
+        if (p == null) return 0f;
+        long now = System.currentTimeMillis();
+        float vanilla = p.getAttackAnim(1.0f);
+        if (vanilla <= 0f && swingStart == 0) armed = true;
+        if (vanilla > 0f && armed && swingStart == 0) {
+            swingStart = now;
+            armed = false;
+            backhand = !backhand;      // удары чередуются: прямой, обратный, прямой…
+        }
+        if (swingStart == 0) return 0f;
+        float s = (now - swingStart) / (float) SWING_MS;
+        if (s >= 1f) {
+            swingStart = 0;
+            return 0f;
+        }
+        return s;
+    }
+
+    /**
+     * Удар: замах лезвием вверх-вправо, рубящая дуга через экран влево, возврат.
+     * Обратный удар идёт по тому же пути в обратную сторону.
+     */
+    private static void strike(PoseStack ps, float s) {
+        if (backhand) s = 1f - s;
+        float wind = smooth(s / 0.22f);
+        float strike = smooth((s - 0.22f) / 0.26f);
+        float rec = smooth((s - 0.48f) / 0.52f);
+        ps.translate(k(wind, strike, rec, 0.08f, -0.30f, 0.22f),
+                k(wind, strike, rec, 0.09f, -0.04f, -0.05f),
+                k(wind, strike, rec, 0.03f, -0.12f, 0.09f));
+        rotY(ps, k(wind, strike, rec, 6f, 14f, -20f));
+        rotZ(ps, k(wind, strike, rec, -46f, 64f, -18f));
+        rotX(ps, k(wind, strike, rec, -4f, -2f, 6f));
+    }
+
+    private static float k(float wind, float strike, float rec, float a, float b, float c) {
+        return a * wind + b * strike + c * rec;
     }
 
     /**
@@ -73,22 +142,6 @@ public final class KnifeAnimations {
 
     private static float bump(float s, float a, float b) {
         return smooth((s - a) / 0.35f) * (1f - smooth((s - b) / 0.35f));
-    }
-
-    /** Взмах: замах вправо, рубящий удар влево, возврат. Возвращает true, если стандартную анимацию нужно отменить. */
-    public static boolean attack(PoseStack ps, HumanoidArm arm, float s) {
-        if (!animate(arm) || s <= 0f) return false;
-        Knives.cancelInspect();
-        float wind = smooth(s / 0.28f);
-        float strike = smooth((s - 0.28f) / 0.30f);
-        float back = smooth((s - 0.58f) / 0.42f);
-        float yaw = -34f * wind + 98f * strike - 64f * back;
-        float peak = (float) Math.sin(Math.PI * clamp((s - 0.12f) / 0.62f));
-        ps.translate(-0.12f * peak, 0.02f * peak, -0.10f * peak);
-        rotY(ps, yaw);
-        rotZ(ps, -28f * peak);
-        rotX(ps, 10f * peak);
-        return true;
     }
 
     private static float clamp(float x) {

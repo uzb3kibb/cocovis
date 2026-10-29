@@ -1,6 +1,7 @@
 package dev.coco.cocovis.gui;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.coco.cocovis.Knives;
 import dev.coco.cocovis.module.Module;
 import net.fabricmc.loader.api.FabricLoader;
 import dev.coco.cocovis.module.ModuleManager;
@@ -26,6 +27,7 @@ public class VisualsScreen extends Screen {
             .map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("dev");
 
     private int catIndex = 0;
+    private final KnifeCatalogView catalog = new KnifeCatalogView();
     private String query = "";
     private int scroll = 0;
     private long lastNs = System.nanoTime();
@@ -76,6 +78,11 @@ public class VisualsScreen extends Screen {
         cW = x0 + w - 10 - cX;
         listTop = cY + 46;
         listBottom = y0 + h - 26;
+    }
+
+    /** Открыта ли сейчас категория с каталогом ножей (и нет поискового запроса). */
+    private boolean catalogOpen() {
+        return query.isEmpty() && ModuleManager.CATEGORIES.get(catIndex).catalog();
     }
 
     private List<Module> visible() {
@@ -199,7 +206,7 @@ public class VisualsScreen extends Screen {
             var cat = ModuleManager.CATEGORIES.get(catIndex);
             g.text(f, "КАТЕГОРИЯ", cX + 2, cY, c(Ui.DIM), false);
             bigText(g, cat.name(), cX + 2, cY + 11, 1.35f, c(Ui.TEXT));
-            g.text(f, cat.subtitle(), cX + 2, cY + 28, c(Ui.MUTED), false);
+            g.text(f, cat.catalog() ? Knives.describe() : cat.subtitle(), cX + 2, cY + 28, c(Ui.MUTED), false);
         } else {
             g.text(f, "ПОИСК", cX + 2, cY, c(Ui.DIM), false);
             bigText(g, "Результаты", cX + 2, cY + 11, 1.35f, c(Ui.TEXT));
@@ -212,6 +219,22 @@ public class VisualsScreen extends Screen {
         String shown = query.isEmpty() ? "Поиск..." : query + (blink ? "_" : "");
         g.text(f, shown, sx + 8, sy + 5, c(query.isEmpty() ? Ui.DIM : Ui.TEXT), false);
         Ui.hBar(g, cX, cY + 40, cW, 1, c(0x30FFFFFF), c(0x00FFFFFF));
+
+        // ---- каталог ножей вместо списка модулей ----
+        if (catalogOpen()) {
+            if (catalog.canGoBack()) {
+                int bx = sx - 78, by = sy;
+                boolean bh = Ui.inside(mX, mY, bx, by, 70, 18);
+                Ui.roundGradient(g, bx, by, 70, 18, 7, c(bh ? Ui.CARD_HOT_TOP : Ui.CARD_TOP), c(bh ? Ui.CARD_HOT_BOT : Ui.CARD_BOT));
+                Ui.roundOutline(g, bx, by, 70, 18, 7, c(bh ? 0x885CC8FF : 0x30FFFFFF));
+                g.text(f, "< Назад", bx + 35 - f.width("< Назад") / 2, by + 5, c(Ui.TEXT), false);
+            }
+            catalog.render(g, f, mX, mY, dt, cX, listTop, cW, listBottom - listTop, this::c);
+            String info = catalog.hoverInfo();
+            String foot = info != null ? info : "RShift: закрыть   ·   колесо: прокрутка   ·   H: осмотр ножа";
+            g.text(f, fit(foot, cW), cX + 2, y0 + h - 17, c(info != null ? Ui.MUTED : Ui.DIM), false);
+            return;
+        }
 
         // ---- список модулей ----
         List<Module> mods = visible();
@@ -316,8 +339,19 @@ public class VisualsScreen extends Screen {
                 catIndex = i;
                 query = "";
                 scroll = 0;
+                catalog.reset();
                 return true;
             }
+        }
+
+        if (catalogOpen()) {
+            int bx = cX + cW - 108 - 78, by = cY + 2;
+            if (catalog.canGoBack() && Ui.inside(mx, my, bx, by, 70, 18)) {
+                catalog.back();
+                return true;
+            }
+            if (catalog.click(mX, mY)) return true;
+            return super.mouseClicked(event, doubleClick);
         }
 
         if (my >= listTop && my < listBottom && mx >= cX && mx < cX + cW) {
@@ -341,6 +375,10 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (catalogOpen()) {
+            catalog.scroll(scrollY);
+            return true;
+        }
         scroll -= (int) (scrollY * 24);
         return true;
     }
@@ -353,6 +391,7 @@ public class VisualsScreen extends Screen {
             return true;
         }
         if (key == InputConstants.KEY_ESCAPE) {
+            if (catalogOpen() && catalog.back()) return true;
             if (!query.isEmpty()) {
                 query = "";
                 scroll = 0;

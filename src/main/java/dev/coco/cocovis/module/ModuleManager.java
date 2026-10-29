@@ -1,8 +1,6 @@
 package dev.coco.cocovis.module;
 
 import dev.coco.cocovis.DiamondConfig;
-import dev.coco.cocovis.Knives;
-import dev.coco.cocovis.gui.KnifeCatalogScreen;
 import dev.coco.cocovis.MotionBlurBridge;
 import dev.coco.cocovis.gui.HudEditor;
 import net.minecraft.client.Minecraft;
@@ -13,7 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ModuleManager {
-    public record Category(String name, String subtitle, Item icon, List<Module> modules) {}
+    /** catalog = true: вместо карточек модулей в категории показывается каталог ножей. */
+    public record Category(String name, String subtitle, Item icon, List<Module> modules, boolean catalog) {
+        public Category(String name, String subtitle, Item icon, List<Module> modules) {
+            this(name, subtitle, icon, modules, false);
+        }
+    }
 
     private static final DiamondConfig CFG = DiamondConfig.get();
 
@@ -36,16 +39,10 @@ public final class ModuleManager {
             .withSettings(MotionBlurBridge::openConfig)
             .withIcon(Items.ENDER_PEARL);
 
-    public static final Module KNIVES = new Module("Ножи", "Сейчас: стандартные мечи", true, Knives::setActive)
-            .withState(Knives::isActive)
-            .withDescription(Knives::describe)
-            .withSettings("Каталог", () -> Minecraft.getInstance().gui.setScreen(new KnifeCatalogScreen()))
-            .withIcon(Items.DIAMOND_SWORD);
-
     public static final List<Category> CATEGORIES = List.of(
             new Category("Визуалы", "Информация на экране", Items.ENDER_EYE, List.of(WATERMARK, COORDS, FPS)),
             new Category("Алмазы", "Экономика сервера", Items.DIAMOND, List.of(DIAMONDS, TOOLTIP, TOASTS)),
-            new Category("Ножи", "Каталог и скины", Items.DIAMOND_SWORD, List.of(KNIVES)),
+            new Category("Ножи", "Каталог и скины", Items.DIAMOND_SWORD, List.of(), true),
             new Category("Эффекты", "Постобработка картинки", Items.ENDER_PEARL, List.of(MOTION_BLUR))
     );
 

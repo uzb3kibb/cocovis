@@ -9,23 +9,29 @@ import net.minecraft.world.item.Items;
 
 /**
  * Выбор ножа и скина.
- * Модели мечей выбирают вариант по состоянию трёх служебных клавиш (key.cocovis.knife0..2): состояние кодируется
- * тремя битами, мод «нажимает» нужные клавиши программно, поэтому ресурсы перезагружать не нужно.
- * Состояния: 0 стандартные мечи, 1 Стандартный, 2 Ржавый, 3 Сапфир, 4 Тёмный, 5 Авто (по материалу меча).
+ * Модели мечей выбирают вариант по состоянию четырёх служебных клавиш (key.cocovis.knife0..3): состояние кодируется
+ * четырьмя битами, мод «нажимает» нужные клавиши программно, поэтому ресурсы перезагружать не нужно.
+ * Состояния: 0 стандартные мечи, 1..10 скины Huntsman по порядку SKIN_IDS, 11 Авто (по материалу меча).
  */
 public final class Knives {
-    public static final String[] SKIN_IDS = {"vanilla", "rust", "sapphire", "dark", "auto"};
-    public static final String[] SKIN_NAMES = {"Стандартный", "Ржавый", "Сапфир", "Тёмный", "Авто"};
+    public static final String[] SKIN_IDS = {"vanilla", "rust", "sapphire", "dark", "fade", "crimson", "case", "slaughter", "night", "forest", "auto"};
+    public static final String[] SKIN_NAMES = {"Стандартный", "Ржавый", "Сапфир", "Тёмный", "Градиент", "Багровая сеть", "Закалка", "Бойня", "Ночь", "Лес", "Авто"};
     public static final String[] SKIN_INFO = {
             "Полированная сталь, как в CS2",
             "Ржавый клинок, чёрная рукоять",
             "Синий клинок «сапфир»",
             "Тёмный клинок, светлая рукоять",
+            "Переливы оранжевого, розового и фиолетового",
+            "Тёмно-красный клинок с узором-паутиной",
+            "Синяя сталь с золотыми пятнами",
+            "Огненно-оранжевый клинок",
+            "Чёрный воронёный клинок",
+            "Зелёный камуфляж",
             "По материалу меча: дерево, железо, алмаз, незерит"
     };
     public static final long INSPECT_MS = 5100;
 
-    private static final KeyMapping[] BITS = new KeyMapping[3];
+    private static final KeyMapping[] BITS = new KeyMapping[4];
     private static KeyMapping inspectKey;
     private static long inspectStart = 0;
 

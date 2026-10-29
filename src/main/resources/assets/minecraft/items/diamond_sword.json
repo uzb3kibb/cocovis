@@ -2,66 +2,138 @@
   "model": {
     "type": "minecraft:condition",
     "property": "minecraft:keybind_down",
-    "keybind": "key.cocovis.knife2",
+    "keybind": "key.cocovis.knife3",
     "on_true": {
       "type": "minecraft:condition",
       "property": "minecraft:keybind_down",
-      "keybind": "key.cocovis.knife1",
+      "keybind": "key.cocovis.knife2",
       "on_true": {
         "type": "minecraft:condition",
         "property": "minecraft:keybind_down",
-        "keybind": "key.cocovis.knife0",
+        "keybind": "key.cocovis.knife1",
         "on_true": {
-          "type": "minecraft:model",
-          "model": "minecraft:item/diamond_sword"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/diamond_sword"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/diamond_sword"
+          }
         },
         "on_false": {
-          "type": "minecraft:model",
-          "model": "minecraft:item/diamond_sword"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/diamond_sword"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/diamond_sword"
+          }
         }
       },
       "on_false": {
         "type": "minecraft:condition",
         "property": "minecraft:keybind_down",
-        "keybind": "key.cocovis.knife0",
+        "keybind": "key.cocovis.knife1",
         "on_true": {
-          "type": "minecraft:model",
-          "model": "cocovis:item/huntsman_sapphire"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_sapphire"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_forest"
+          }
         },
         "on_false": {
-          "type": "minecraft:model",
-          "model": "cocovis:item/huntsman_dark"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_night"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_slaughter"
+          }
         }
       }
     },
     "on_false": {
       "type": "minecraft:condition",
       "property": "minecraft:keybind_down",
-      "keybind": "key.cocovis.knife1",
+      "keybind": "key.cocovis.knife2",
       "on_true": {
         "type": "minecraft:condition",
         "property": "minecraft:keybind_down",
-        "keybind": "key.cocovis.knife0",
+        "keybind": "key.cocovis.knife1",
         "on_true": {
-          "type": "minecraft:model",
-          "model": "cocovis:item/huntsman_sapphire"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_case"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_crimson"
+          }
         },
         "on_false": {
-          "type": "minecraft:model",
-          "model": "cocovis:item/huntsman_rust"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_fade"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_dark"
+          }
         }
       },
       "on_false": {
         "type": "minecraft:condition",
         "property": "minecraft:keybind_down",
-        "keybind": "key.cocovis.knife0",
+        "keybind": "key.cocovis.knife1",
         "on_true": {
-          "type": "minecraft:model",
-          "model": "cocovis:item/huntsman_vanilla"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_sapphire"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_rust"
+          }
         },
         "on_false": {
-          "type": "minecraft:model",
-          "model": "minecraft:item/diamond_sword"
+          "type": "minecraft:condition",
+          "property": "minecraft:keybind_down",
+          "keybind": "key.cocovis.knife0",
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "cocovis:item/huntsman_vanilla"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/diamond_sword"
+          }
         }
       }
     }
