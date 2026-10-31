@@ -16,12 +16,17 @@ import org.joml.Vector3f;
  */
 public final class KnifeAnimations {
     /** Направление вдоль клинка в системе камеры при обычном хвате. */
-    private static final Vector3f BLADE_AXIS = new Vector3f(-0.93f, 0.33f, -0.16f).normalize();
+    private static final Vector3f BLADE_AXIS = new Vector3f(-0.957f, 0.271f, -0.100f).normalize();
+    /** Центр ножа относительно руки (из display-перевода модели): вокруг него идёт прокрутка при осмотре. */
+    private static final Vector3f KNIFE_CENTER = new Vector3f(-2.9f / 16f, 3.75f / 16f, -0.72f / 16f);
+    /** Сколько после удара игра «проседает» предмет, пока перезаряжается удар. */
+    private static final long DIP_MS = 800;
     private static final long SWING_MS = 340;
 
     private static boolean logged = false;
     private static boolean swingLogged = false;
     private static long swingStart = 0;
+    private static long lastSwingMs = 0;
     private static boolean armed = true;
     private static boolean backhand = false;
 
@@ -57,10 +62,19 @@ public final class KnifeAnimations {
             System.out.println("[cocovis] хук анимаций ножа работает");
         }
 
+        float swing = swingProgress();   // заодно запоминает время начала удара
+
         // лёгкое «дыхание» ножа в руке
         double t = System.nanoTime() / 1.0e9;
         ps.translate(0f, (float) (Math.sin(t * 1.7) * 0.0035), 0f);
         rotZ(ps, (float) (Math.sin(t * 1.1) * 0.8));
+
+        // После удара игра на время перезарядки опускает предмет вниз, и нож уходил за край экрана.
+        // В CS2 такого нет: сразу после удара возвращаем предмет на место (игра сдвигает его на -0.6 * equip по высоте).
+        if (System.currentTimeMillis() - lastSwingMs < DIP_MS) {
+            if (equip > 0f) ps.translate(0f, 0.6f * equip, 0f);
+            equip = 0f;
+        }
 
         // выхват: нож подбрасывается снизу
         if (equip > 0f) {
@@ -70,7 +84,6 @@ public final class KnifeAnimations {
             rotY(ps, -14f * equip);
         }
 
-        float swing = swingProgress();
         if (swing > 0f) {
             Knives.cancelInspect();
             strike(ps, swing);
@@ -78,53 +91,6 @@ public final class KnifeAnimations {
         }
         float ip = Knives.inspectProgress();
         if (ip >= 0f) inspect(ps, ip);
-    }
-
-    // ---- определение начала удара: в 26.3 имена в LivingEntity менялись, поэтому ищем доступный способ при запуске ----
-    private static boolean probed = false;
-    private static Method attackAnimMethod, isSwingingMethod;
-    private static Field swingingField, swingTimeField;
-
-    private static Field findField(Class<?> c, String name) {
-        for (Class<?> k = c; k != null; k = k.getSuperclass()) {
-            try {
-                Field f = k.getDeclaredField(name);
-                f.setAccessible(true);
-                return f;
-            } catch (Throwable ignored) {
-                // ищем выше по иерархии
-            }
-        }
-        return null;
-    }
-
-    private static void probe(LocalPlayer p) {
-        probed = true;
-        try { attackAnimMethod = p.getClass().getMethod("getAttackAnim", float.class); } catch (Throwable ignored) { }
-        if (attackAnimMethod == null) {
-            try { isSwingingMethod = p.getClass().getMethod("isSwinging"); } catch (Throwable ignored) { }
-            swingingField = findField(p.getClass(), "swinging");
-            swingTimeField = findField(p.getClass(), "swingTime");
-        }
-        String how = attackAnimMethod != null ? "getAttackAnim"
-                : isSwingingMethod != null ? "isSwinging()"
-                : swingingField != null ? "поле swinging"
-                : swingTimeField != null ? "поле swingTime" : "НЕ НАЙДЕНО";
-        System.out.println("[cocovis] определение удара: " + how);
-    }
-
-    /** Больше нуля, пока игра считает, что игрок замахивается. */
-    private static float vanillaSwing(LocalPlayer p) {
-        if (!probed) probe(p);
-        try {
-            if (attackAnimMethod != null) return (Float) attackAnimMethod.invoke(p, 1.0f);
-            if (isSwingingMethod != null && (Boolean) isSwingingMethod.invoke(p)) return 1f;
-            if (swingingField != null && swingingField.getBoolean(p)) return 1f;
-            if (swingTimeField != null && swingTimeField.getInt(p) > 0) return 1f;
-        } catch (Throwable ignored) {
-            // нет доступа — считаем, что удара нет
-        }
-        return 0f;
     }
 
     /**
@@ -139,6 +105,7 @@ public final class KnifeAnimations {
         if (vanilla <= 0f && swingStart == 0) armed = true;
         if (vanilla > 0f && armed && swingStart == 0) {
             swingStart = now;
+            lastSwingMs = now;
             armed = false;
             backhand = !backhand;      // удары чередуются: прямой, обратный, прямой…
         }
@@ -183,10 +150,13 @@ public final class KnifeAnimations {
         float flick2 = 90f * (float) Math.sin(Math.PI * smooth((s - 4.6f) / 0.5f));
         float spin = flick + 360f * smooth((s - 1.5f) / 0.4f) + 360f * smooth((s - 3.2f) / 0.4f) + flick2;
         float lean = 4f * up + 10f * bump(s, 1.9f, 3.2f) + 6f * bump(s, 3.7f, 4.6f);
-        ps.translate(-0.30f * up, 0.17f * up, 0.10f * up);
-        rotZ(ps, -72f * up + lean);
-        rotX(ps, -10f * up);
+        ps.translate(-0.296f * up, 0.325f * up, -0.238f * up);
+        rotZ(ps, -67.2f * up + lean);
+        rotX(ps, -11.7f * up);
+        // прокрутка вокруг самого ножа (через его центр), а не вокруг руки
+        ps.translate(KNIFE_CENTER.x, KNIFE_CENTER.y, KNIFE_CENTER.z);
         mul(ps, new Quaternionf().rotationAxis((float) Math.toRadians(spin), BLADE_AXIS.x, BLADE_AXIS.y, BLADE_AXIS.z));
+        ps.translate(-KNIFE_CENTER.x, -KNIFE_CENTER.y, -KNIFE_CENTER.z);
     }
 
     private static float bump(float s, float a, float b) {
