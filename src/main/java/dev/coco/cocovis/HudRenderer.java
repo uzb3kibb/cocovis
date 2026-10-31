@@ -11,6 +11,7 @@ import net.minecraft.world.item.Items;
 /** Рисует все элементы HUD: панель алмазов, тосты и информационную панель. */
 public final class HudRenderer {
     private static ItemStack leftGlove;
+    private static boolean gloveLogged = false;
 
     private HudRenderer() {}
 
@@ -20,6 +21,10 @@ public final class HudRenderer {
         if (leftGlove == null) {
             leftGlove = new ItemStack(Items.PAPER);
             leftGlove.set(DataComponents.ITEM_MODEL, Identifier.fromNamespaceAndPath("cocovis", "glove_left"));
+        }
+        if (!gloveLogged) {
+            gloveLogged = true;
+            System.out.println("[cocovis] левая перчатка отрисовывается");
         }
         int h = mc.getWindow().getGuiScaledHeight();
         var pose = g.pose();
