@@ -16,7 +16,7 @@ public final class HudRenderer {
 
     /** Левая перчатка в левом нижнем углу, как у CS2: рисуется, пока в правой руке нож. */
     private static void drawLeftGlove(GuiGraphicsExtractor g, Minecraft mc) {
-        if (mc.options.hideGui || !Knives.isKnifeInHand(mc)) return;
+        if (!Knives.isKnifeInHand(mc)) return;
         if (leftGlove == null) {
             leftGlove = new ItemStack(Items.PAPER);
             leftGlove.set(DataComponents.ITEM_MODEL, Identifier.fromNamespaceAndPath("cocovis", "glove_left"));
