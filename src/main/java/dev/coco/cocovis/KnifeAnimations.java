@@ -93,6 +93,53 @@ public final class KnifeAnimations {
         if (ip >= 0f) inspect(ps, ip);
     }
 
+    // ---- определение начала удара: в 26.3 имена в LivingEntity менялись, поэтому ищем доступный способ при запуске ----
+    private static boolean probed = false;
+    private static Method attackAnimMethod, isSwingingMethod;
+    private static Field swingingField, swingTimeField;
+
+    private static Field findField(Class<?> c, String name) {
+        for (Class<?> k = c; k != null; k = k.getSuperclass()) {
+            try {
+                Field f = k.getDeclaredField(name);
+                f.setAccessible(true);
+                return f;
+            } catch (Throwable ignored) {
+                // ищем выше по иерархии
+            }
+        }
+        return null;
+    }
+
+    private static void probe(LocalPlayer p) {
+        probed = true;
+        try { attackAnimMethod = p.getClass().getMethod("getAttackAnim", float.class); } catch (Throwable ignored) { }
+        if (attackAnimMethod == null) {
+            try { isSwingingMethod = p.getClass().getMethod("isSwinging"); } catch (Throwable ignored) { }
+            swingingField = findField(p.getClass(), "swinging");
+            swingTimeField = findField(p.getClass(), "swingTime");
+        }
+        String how = attackAnimMethod != null ? "getAttackAnim"
+                : isSwingingMethod != null ? "isSwinging()"
+                : swingingField != null ? "поле swinging"
+                : swingTimeField != null ? "поле swingTime" : "НЕ НАЙДЕНО";
+        System.out.println("[cocovis] определение удара: " + how);
+    }
+
+    /** Больше нуля, пока игра считает, что игрок замахивается. */
+    private static float vanillaSwing(LocalPlayer p) {
+        if (!probed) probe(p);
+        try {
+            if (attackAnimMethod != null) return (Float) attackAnimMethod.invoke(p, 1.0f);
+            if (isSwingingMethod != null && (Boolean) isSwingingMethod.invoke(p)) return 1f;
+            if (swingingField != null && swingingField.getBoolean(p)) return 1f;
+            if (swingTimeField != null && swingTimeField.getInt(p) > 0) return 1f;
+        } catch (Throwable ignored) {
+            // нет доступа — считаем, что удара нет
+        }
+        return 0f;
+    }
+
     /**
      * Свой отсчёт взмаха: игра сообщает только о начале удара, дальше идём по реальному времени.
      * Так анимация плавная при любом FPS и не зависит от скорости стандартного взмаха.
