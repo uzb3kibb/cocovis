@@ -21,12 +21,31 @@ public final class KnifeAnimations {
     private static final Vector3f KNIFE_CENTER = new Vector3f(-2.9f / 16f, 3.75f / 16f, -0.72f / 16f);
     /** Сколько после удара игра «проседает» предмет, пока перезаряжается удар. */
     private static final long DIP_MS = 800;
-    private static final long SWING_MS = 340;
+    private static final long SWING_MS = 400;   // по видео CS2 (31.10): удар 5,13–5,53 с
 
     private static boolean logged = false;
     private static boolean swingLogged = false;
     private static long swingStart = 0;
     private static long lastSwingMs = 0;
+    private static boolean wasKnife = false;
+    private static long drawStart = 0;
+
+    /** 1 — в начале выхвата, 0 — нож в хвате. Таймер стартует, когда нож появляется в правой руке. */
+    /** Вызывается каждый кадр из HUD, чтобы состояние выхвата обновлялось даже когда нож убран (hold() тогда не вызывается). */
+    public static void tick() {
+        drawProgress();
+    }
+
+    private static float drawProgress() {
+        boolean knife = ownsSwing();
+        long now = System.currentTimeMillis();
+        if (knife && !wasKnife) drawStart = now;
+        wasKnife = knife;
+        if (!knife || drawStart == 0) return 0f;
+        float t = (now - drawStart) / 1000f;
+        if (t >= 0.75f) return 0f;
+        return 1f - smooth((t - 0.15f) / 0.6f);
+    }
     private static boolean armed = true;
     private static boolean backhand = false;
 
@@ -76,12 +95,13 @@ public final class KnifeAnimations {
             equip = 0f;
         }
 
-        // выхват: нож подбрасывается снизу
-        if (equip > 0f) {
-            ps.translate(0f, 0.04f * equip, 0f);
-            rotX(ps, -48f * equip);
-            rotZ(ps, 26f * equip);
-            rotY(ps, -14f * equip);
+        // выхват по видео CS2 (31.10, 19:14): нож стоит справа вверху, опускается и поворачивается в хват за ~0,75 с
+        float p = drawProgress();
+        if (p > 0f) {
+            ps.translate(0.50f * p, 0.52f * p, 0f);
+            rotZ(ps, -80f * p);
+            rotX(ps, 30f * p);
+            rotY(ps, -20f * p);
         }
 
         if (swing > 0f) {
@@ -170,16 +190,19 @@ public final class KnifeAnimations {
      * Обратный удар идёт по тому же пути в обратную сторону.
      */
     private static void strike(PoseStack ps, float s) {
-        if (backhand) s = 1f - s;
-        float wind = smooth(s / 0.22f);
-        float strike = smooth((s - 0.22f) / 0.26f);
-        float rec = smooth((s - 0.48f) / 0.52f);
-        ps.translate(k(wind, strike, rec, 0.08f, -0.30f, 0.22f),
-                k(wind, strike, rec, 0.09f, -0.04f, -0.05f),
-                k(wind, strike, rec, 0.03f, -0.12f, 0.09f));
-        rotY(ps, k(wind, strike, rec, 6f, 14f, -20f));
-        rotZ(ps, k(wind, strike, rec, -46f, 64f, -18f));
-        rotX(ps, k(wind, strike, rec, -4f, -2f, 6f));
+        // по видео CS2 (31.10, 19:14), 5,10–5,53 с: заход снизу справа, рубящий проход влево, возврат вправо.
+        // Суммы смещений по фазам равны нулю, поэтому в конце удара нож возвращается в хват.
+        // Чередующиеся удары отзеркаливаются по X (не проигрываются задом наперёд).
+        float sign = backhand ? -1f : 1f;
+        float w = smooth(s / 0.3f);
+        float k2 = smooth((s - 0.3f) / 0.4f);
+        float r = smooth((s - 0.7f) / 0.3f);
+        ps.translate(sign * k(w, k2, r, 0.22f, -0.72f, 0.50f),
+                k(w, k2, r, -0.40f, 0.18f, 0.22f),
+                k(w, k2, r, 0f, -0.10f, 0.10f));
+        rotZ(ps, sign * k(w, k2, r, -20f, 40f, -20f));
+        rotY(ps, sign * k(w, k2, r, 0f, -10f, 10f));
+        rotX(ps, k(w, k2, r, 0f, 6f, -6f));
     }
 
     private static float k(float wind, float strike, float rec, float a, float b, float c) {

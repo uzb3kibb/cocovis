@@ -37,6 +37,7 @@ public final class HudRenderer {
 
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Knives.apply();
+        KnifeAnimations.tick();
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         DiamondHud.render(g, delta);
