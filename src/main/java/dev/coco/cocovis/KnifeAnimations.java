@@ -21,7 +21,7 @@ public final class KnifeAnimations {
     private static final Vector3f KNIFE_CENTER = new Vector3f(-2.9f / 16f, 3.75f / 16f, -0.72f / 16f);
     /** Сколько после удара игра «проседает» предмет, пока перезаряжается удар. */
     private static final long DIP_MS = 800;
-    private static final long SWING_MS = 400;   // по видео CS2 (31.10): удар 5,13–5,53 с
+    private static final long SWING_MS = 1167;  // реальная длительность melee_1 из мода CS2 Knives for TACZ (animations/melee/tactical.animation.json)
 
     private static boolean logged = false;
     private static boolean swingLogged = false;
@@ -43,8 +43,8 @@ public final class KnifeAnimations {
         wasKnife = knife;
         if (!knife || drawStart == 0) return 0f;
         float t = (now - drawStart) / 1000f;
-        if (t >= 0.75f) return 0f;
-        return 1f - smooth((t - 0.15f) / 0.6f);
+        if (t >= 1.0f) return 0f;
+        return 1f - smooth((t - 0.15f) / 0.8f);   // длительность по реальной анимации draw (1,0 с) из мода CS2 Knives
     }
     private static boolean armed = true;
     private static boolean backhand = false;
@@ -189,25 +189,33 @@ public final class KnifeAnimations {
      * Удар: замах лезвием вверх-вправо, рубящая дуга через экран влево, возврат.
      * Обратный удар идёт по тому же пути в обратную сторону.
      */
+    /**
+     * Форма удара (нарастание-пик-спад) по реальной кривой |Δrotation| анимации melee_1 из мода
+     * CS2 Knives for LR Tactical (TACZ): пик достигается к ~15% времени, держится до ~35%, спад к 100%.
+     * Направление движения (куда едет клинок на экране) оставлено своим, провереным по видео CS2,
+     * так как у TACZ своя скелетная система координат, которую нельзя перенести как есть без игры.
+     */
+    private static float strikeEnvelope(float f) {
+        float[] xs = {0f, 0.15f, 0.35f, 0.65f, 1f};
+        float[] ys = {0f, 1f, 0.85f, 0.35f, 0f};
+        for (int i = 0; i < xs.length - 1; i++) {
+            if (f <= xs[i + 1] || i == xs.length - 2) {
+                float local = (f - xs[i]) / (xs[i + 1] - xs[i] + 1e-6f);
+                return ys[i] + (ys[i + 1] - ys[i]) * smooth(local);
+            }
+        }
+        return 0f;
+    }
+
     private static void strike(PoseStack ps, float s) {
-        // по видео CS2 (31.10, 19:14), 5,10–5,53 с: заход снизу справа, рубящий проход влево, возврат вправо.
-        // Суммы смещений по фазам равны нулю, поэтому в конце удара нож возвращается в хват.
         // Чередующиеся удары — та же траектория, пройденная в обратном порядке времени (как при реверсе видео),
         // а не отражённая по отдельным осям: частичное зеркалирование давало нескладное, «сломанное» движение.
         float t = backhand ? 1f - s : s;
-        float w = smooth(t / 0.3f);
-        float k2 = smooth((t - 0.3f) / 0.4f);
-        float r = smooth((t - 0.7f) / 0.3f);
-        ps.translate(k(w, k2, r, 0.22f, -0.72f, 0.50f),
-                k(w, k2, r, -0.40f, 0.18f, 0.22f),
-                k(w, k2, r, 0f, -0.10f, 0.10f));
-        rotZ(ps, k(w, k2, r, -20f, 40f, -20f));
-        rotY(ps, k(w, k2, r, 0f, -10f, 10f));
-        rotX(ps, k(w, k2, r, 0f, 6f, -6f));
-    }
-
-    private static float k(float wind, float strike, float rec, float a, float b, float c) {
-        return a * wind + b * strike + c * rec;
+        float e = strikeEnvelope(t);
+        ps.translate(0.15f * e, -0.08f * e, -0.02f * e);
+        rotZ(ps, 108f * e);   // амплитуда поднята по реальным данным (там поворот доходит до ~170°)
+        rotY(ps, -14f * e);
+        rotX(ps, 6f * e);
     }
 
     /**
