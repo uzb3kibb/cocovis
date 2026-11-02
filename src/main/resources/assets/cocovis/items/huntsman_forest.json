@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "cocovis:item/huntsman_forest"
+    "model": "cocovis:item/huntsman_forest_icon"
   }
 }

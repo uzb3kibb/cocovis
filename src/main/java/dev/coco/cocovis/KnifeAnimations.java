@@ -192,16 +192,17 @@ public final class KnifeAnimations {
     private static void strike(PoseStack ps, float s) {
         // по видео CS2 (31.10, 19:14), 5,10–5,53 с: заход снизу справа, рубящий проход влево, возврат вправо.
         // Суммы смещений по фазам равны нулю, поэтому в конце удара нож возвращается в хват.
-        // Чередующиеся удары отзеркаливаются по X (не проигрываются задом наперёд).
-        float sign = backhand ? -1f : 1f;
-        float w = smooth(s / 0.3f);
-        float k2 = smooth((s - 0.3f) / 0.4f);
-        float r = smooth((s - 0.7f) / 0.3f);
-        ps.translate(sign * k(w, k2, r, 0.22f, -0.72f, 0.50f),
+        // Чередующиеся удары — та же траектория, пройденная в обратном порядке времени (как при реверсе видео),
+        // а не отражённая по отдельным осям: частичное зеркалирование давало нескладное, «сломанное» движение.
+        float t = backhand ? 1f - s : s;
+        float w = smooth(t / 0.3f);
+        float k2 = smooth((t - 0.3f) / 0.4f);
+        float r = smooth((t - 0.7f) / 0.3f);
+        ps.translate(k(w, k2, r, 0.22f, -0.72f, 0.50f),
                 k(w, k2, r, -0.40f, 0.18f, 0.22f),
                 k(w, k2, r, 0f, -0.10f, 0.10f));
-        rotZ(ps, sign * k(w, k2, r, -20f, 40f, -20f));
-        rotY(ps, sign * k(w, k2, r, 0f, -10f, 10f));
+        rotZ(ps, k(w, k2, r, -20f, 40f, -20f));
+        rotY(ps, k(w, k2, r, 0f, -10f, 10f));
         rotX(ps, k(w, k2, r, 0f, 6f, -6f));
     }
 

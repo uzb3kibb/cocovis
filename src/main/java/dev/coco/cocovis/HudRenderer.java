@@ -12,6 +12,7 @@ import net.minecraft.world.item.Items;
 public final class HudRenderer {
     private static ItemStack leftGlove;
     private static boolean gloveLogged = false;
+    private static boolean gloveFailLogged = false;
 
     private HudRenderer() {}
 
@@ -26,13 +27,20 @@ public final class HudRenderer {
             gloveLogged = true;
             System.out.println("[cocovis] левая перчатка отрисовывается");
         }
-        int h = mc.getWindow().getGuiScaledHeight();
-        var pose = g.pose();
-        pose.pushMatrix();
-        pose.translate(-4f, h - 112f);
-        pose.scale(7f, 7f);
-        g.item(leftGlove, 0, 0);
-        pose.popMatrix();
+        try {
+            int h = mc.getWindow().getGuiScaledHeight();
+            var pose = g.pose();
+            pose.pushMatrix();
+            pose.translate(-20f, h - 150f);
+            pose.scale(10f, 10f);
+            g.item(leftGlove, 0, 0);
+            pose.popMatrix();
+        } catch (Throwable t) {
+            if (!gloveFailLogged) {
+                gloveFailLogged = true;
+                System.out.println("[cocovis] левая перчатка: ошибка отрисовки " + t);
+            }
+        }
     }
 
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
