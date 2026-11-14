@@ -1,0 +1,7 @@
+CocoVis bundles (unmodified, as a nested jar) the following mod:
+
+Natural Motion Blur 1.4.5+mc26.3
+Author: Pasi (contributors: IMS212, Romain H, What42Pizza)
+License: LGPL-3.0
+The nested jar META-INF/jars/naturalmotionblur-1.4.5.jar can be extracted and
+replaced with another version of that mod. It requires YetAnotherConfigLib (YACL) >= 3.9.6.

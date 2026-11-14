@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "cocovis",
+  "version": "${version}",
+  "name": "CocoVis",
+  "description": "Клиентские визуалы: клановые nametags, счётчик алмазов, цены в тултипах. Включает Natural Motion Blur (LGPL-3.0, автор Pasi).",
+  "authors": ["coco"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.coco.cocovis.CocoVisClient"]
+  },
+  "mixins": ["cocovis.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "jars": [
+    { "file": "META-INF/jars/naturalmotionblur-1.4.5.jar" }
+  ]
+}
