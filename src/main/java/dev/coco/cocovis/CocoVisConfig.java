@@ -26,6 +26,11 @@ public final class CocoVisConfig {
     public boolean showEmblem = true;
     public boolean showAccent = true;
     public boolean useProfileName = true;
+    /** HP in the nametag: heart + segmented bar + number (also for players without a clan). */
+    public boolean showHealth = true;
+    public boolean healthBar = true;
+    public boolean healthNumber = true;
+    public int healthSegments = 5;
     /** Optional manual colors: "clanname" (lowercase) -> "#RRGGBB". */
     public Map<String, String> colorOverrides = new LinkedHashMap<>();
 
