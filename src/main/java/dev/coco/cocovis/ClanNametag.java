@@ -18,7 +18,7 @@ public final class ClanNametag {
     /** @return new nametag, or null to keep the vanilla one. */
     public static Component build(Player player, Component original) {
         CocoVisConfig cfg = CocoVisConfig.get();
-        if (!cfg.enabled) {
+        if (!cfg.clanNametags) {
             return null;
         }
         String clan = ClanResolver.resolve(player);
