@@ -62,6 +62,6 @@ public class CocoVisClient implements ClientModInitializer {
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
 
-        LOGGER.info("CocoVis 0.3.0-fix loaded: menu, clan nametags, diamond HUD, toasts, tooltips, motion blur");
+        LOGGER.info("CocoVis 0.3.0-fix2 loaded: menu, clan nametags, diamond HUD, toasts, tooltips, motion blur");
     }
 }
