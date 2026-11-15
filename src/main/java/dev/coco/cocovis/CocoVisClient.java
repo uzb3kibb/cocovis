@@ -18,8 +18,9 @@ public class CocoVisClient implements ClientModInitializer {
     public static final String MOD_ID = "cocovis";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static final int KEY_RIGHT_SHIFT = 344;
-    private static final int KEY_UNBOUND = -1;
+    // Minecraft 26.x reads keys through SDL: these are SDL scancodes, not GLFW codes.
+    private static final int KEY_RIGHT_SHIFT = 229;
+    private static final int KEY_K = 14;
 
     private static KeyMapping menuKey;
     private static KeyMapping editKey;
@@ -31,7 +32,7 @@ public class CocoVisClient implements ClientModInitializer {
 
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
         menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.cocovis.menu", KEY_RIGHT_SHIFT, category));
-        editKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.cocovis.edit_hud", KEY_UNBOUND, category));
+        editKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.cocovis.edit_hud", KEY_K, category));
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             while (menuKey.consumeClick()) {
@@ -48,19 +49,3 @@ public class CocoVisClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(DiamondTracker::tick);
 
         HudElementRegistry.attachElementBefore(
-                VanillaHudElements.CHAT,
-                Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
-                (graphics, tickCounter) -> {
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc.player == null || mc.gui.screen() instanceof HudEditor) {
-                        return;
-                    }
-                    InfoHud.render(graphics, mc);
-                    DiamondHud.render(graphics, mc);
-                });
-
-        ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
-
-        LOGGER.info("CocoVis 0.3.0 loaded: menu, clan nametags, diamond HUD, toasts, tooltips, motion blur");
-    }
-}
