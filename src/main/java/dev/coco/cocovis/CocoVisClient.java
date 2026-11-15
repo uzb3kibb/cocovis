@@ -49,3 +49,19 @@ public class CocoVisClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(DiamondTracker::tick);
 
         HudElementRegistry.attachElementBefore(
+                VanillaHudElements.CHAT,
+                Identifier.fromNamespaceAndPath(MOD_ID, "hud"),
+                (graphics, tickCounter) -> {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player == null || mc.gui.screen() instanceof HudEditor) {
+                        return;
+                    }
+                    InfoHud.render(graphics, mc);
+                    DiamondHud.render(graphics, mc);
+                });
+
+        ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
+
+        LOGGER.info("CocoVis 0.3.0-fix loaded: menu, clan nametags, diamond HUD, toasts, tooltips, motion blur");
+    }
+}
