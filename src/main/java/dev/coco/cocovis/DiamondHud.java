@@ -69,7 +69,7 @@ public final class DiamondHud {
         g.pose().pushMatrix();
         g.pose().translate((float) cfg.hudX, (float) cfg.hudY);
         g.pose().scale(s, s);
-        Ui.panel(g, 0, 0, w, h);
+        Ui.card(g, 0, 0, w, h);
         g.text(font, "Алмазы", 8, 7, Ui.ACCENT, true);
         Ui.hBar(g, 8, 18, w - 16, 1, Ui.ACCENT, Ui.fade(Ui.ACCENT, 0.05f));
         for (int i = 0; i < 3; i++) {

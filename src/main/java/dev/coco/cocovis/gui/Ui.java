@@ -103,4 +103,10 @@ public final class Ui {
             g.fill(x + i, y, x + i + 1, y + h, mix(left, right, t));
         }
     }
+
+    /** Dark rounded card used by the HUD panels (diamonds, effects). */
+    public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+        roundFill(g, x, y, w, h, 6, 0xE6101115);
+        roundOutline(g, x, y, w, h, 6, 0xFF26272E);
+    }
 }

@@ -57,11 +57,12 @@ public class CocoVisClient implements ClientModInitializer {
                         return;
                     }
                     InfoHud.render(graphics, mc);
+                    EffectsHud.render(graphics, mc);
                     DiamondHud.render(graphics, mc);
                 });
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
 
-        LOGGER.info("CocoVis 0.4.0 loaded: menu, clan nametags, diamond HUD, toasts, tooltips, motion blur");
+        LOGGER.info("CocoVis 0.0.2 loaded");
     }
 }

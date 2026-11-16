@@ -58,8 +58,21 @@ public final class CocoVisConfig {
     public int infoY = 6;
     public float infoScale = 1.0f;
     public boolean showWatermark = true;
-    public boolean showCoords = false;
-    public boolean showFps = false;
+    public boolean showNick = true;
+    public boolean showFps = true;
+    public boolean showPing = true;
+    public boolean showCoords = true;
+    public boolean showSpeed = true;
+
+    // ---- potion effects panel ----
+    public boolean showEffects = true;
+    /** false = card with progress bars, true = compact pills. */
+    public boolean effectsPills = false;
+    public int effX = 6;
+    public int effY = 170;
+    public float effScale = 1.0f;
+    /** Coloured dots for active effects next to the nick. */
+    public boolean nametagEffects = true;
 
     private static Map<String, Double> defaultPrices() {
         Map<String, Double> m = new LinkedHashMap<>();
@@ -79,6 +92,7 @@ public final class CocoVisConfig {
         hudX = 6; hudY = 40; hudScale = 1.0f;
         infoX = 6; infoY = 6; infoScale = 1.0f;
         toastX = 6; toastY = 120;
+        effX = 6; effY = 170; effScale = 1.0f;
     }
 
     private static Path path() {

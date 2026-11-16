@@ -1,4 +1,4 @@
-# CocoVis 0.0.1 — Reference UI Update
+# CocoVis 0.0.2 — Reference UI Update
 
 Client-side Fabric mod for Minecraft 26.3.
 

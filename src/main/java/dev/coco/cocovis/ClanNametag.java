@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.List;
 import java.util.Locale;
 
 /** Builds the nametag text: "Nick ▎ ✦ CLAN  ❤ ▮▮▮▮▯ 16". */
@@ -29,7 +30,8 @@ public final class ClanNametag {
             return null;
         }
         String clan = ClanResolver.resolve(player);
-        if (clan == null && !cfg.showHealth) {
+        List<EffectsHud.Entry> effects = cfg.nametagEffects ? EffectsHud.of(player) : List.of();
+        if (clan == null && !cfg.showHealth && effects.isEmpty()) {
             return null;
         }
 
@@ -55,6 +57,16 @@ public final class ClanNametag {
         if (cfg.showHealth) {
             out.append(Component.literal("  "));
             out.append(health(player, cfg));
+        }
+        if (!effects.isEmpty()) {
+            out.append(Component.literal("  "));
+            int shown = Math.min(6, effects.size());
+            for (int i = 0; i < shown; i++) {
+                out.append(Component.literal("●").withStyle(color(effects.get(i).color())));
+            }
+            if (effects.size() > shown) {
+                out.append(Component.literal("+" + (effects.size() - shown)).withStyle(color(EMPTY_COLOR)));
+            }
         }
         return out;
     }

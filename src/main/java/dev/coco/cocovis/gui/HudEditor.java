@@ -2,6 +2,7 @@ package dev.coco.cocovis.gui;
 
 import dev.coco.cocovis.CocoVisConfig;
 import dev.coco.cocovis.DiamondHud;
+import dev.coco.cocovis.EffectsHud;
 import dev.coco.cocovis.InfoHud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -11,11 +12,12 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
-/** Drag the diamond panel, info panel and toasts with the mouse; wheel over a panel = size. */
+/** Drag the info pills, effects, diamond panel and toasts; wheel over a panel = size. */
 public class HudEditor extends Screen {
     private static final int DIAMOND = 0;
     private static final int INFO = 1;
     private static final int TOAST = 2;
+    private static final int EFFECTS = 3;
     private static final int BTN_W = 90;
     private static final int BTN_H = 18;
 
@@ -57,6 +59,10 @@ public class HudEditor extends Screen {
         if (Ui.inside(x, y, DiamondHud.toastBX, DiamondHud.toastBY, DiamondHud.toastBW, DiamondHud.toastBH)) {
             return TOAST;
         }
+        if (EffectsHud.boundsW > 0
+                && Ui.inside(x, y, EffectsHud.boundsX, EffectsHud.boundsY, EffectsHud.boundsW, EffectsHud.boundsH)) {
+            return EFFECTS;
+        }
         if (Ui.inside(x, y, DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH)) {
             return DIAMOND;
         }
@@ -87,6 +93,9 @@ public class HudEditor extends Screen {
         } else if (target == TOAST) {
             cfg.toastX = x;
             cfg.toastY = y;
+        } else if (target == EFFECTS) {
+            cfg.effX = x;
+            cfg.effY = y;
         }
     }
 
@@ -112,6 +121,9 @@ public class HudEditor extends Screen {
             } else if (target == INFO) {
                 posX = cfg.infoX;
                 posY = cfg.infoY;
+            } else if (target == EFFECTS) {
+                posX = cfg.effX;
+                posY = cfg.effY;
             } else {
                 posX = cfg.toastX;
                 posY = cfg.toastY;
@@ -131,22 +143,26 @@ public class HudEditor extends Screen {
         return super.mouseReleased(event);
     }
 
+    private static float stepScale(float value, float delta) {
+        return Math.max(0.5f, Math.min(2.5f, Math.round((value + delta) * 10f) / 10f));
+    }
+
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         int panel = panelAt(mX, mY);
         CocoVisConfig cfg = CocoVisConfig.get();
         float delta = scrollY > 0 ? 0.1f : -0.1f;
         if (panel == DIAMOND) {
-            cfg.hudScale = Math.max(0.5f, Math.min(2.5f, Math.round((cfg.hudScale + delta) * 10f) / 10f));
-            CocoVisConfig.save();
-            return true;
+            cfg.hudScale = stepScale(cfg.hudScale, delta);
+        } else if (panel == INFO) {
+            cfg.infoScale = stepScale(cfg.infoScale, delta);
+        } else if (panel == EFFECTS) {
+            cfg.effScale = stepScale(cfg.effScale, delta);
+        } else {
+            return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
-        if (panel == INFO) {
-            cfg.infoScale = Math.max(0.5f, Math.min(2.5f, Math.round((cfg.infoScale + delta) * 10f) / 10f));
-            CocoVisConfig.save();
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        CocoVisConfig.save();
+        return true;
     }
 
     @Override
@@ -165,14 +181,16 @@ public class HudEditor extends Screen {
         follow();
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
-        g.fill(0, 0, sw(), sh(), Ui.fade(0xFF000000, 0.4f));
+        g.fill(0, 0, sw(), sh(), Ui.fade(0xFF000000, 0.45f));
 
         InfoHud.draw(g, mc, true);
+        EffectsHud.draw(g, mc, true);
         DiamondHud.draw(g, mc, true);
         DiamondHud.drawToastPreview(g, mc);
 
         int hover = dragging ? target : panelAt(mX, mY);
         outline(g, font, "Информация", InfoHud.boundsX, InfoHud.boundsY, InfoHud.boundsW, InfoHud.boundsH, hover == INFO);
+        outline(g, font, "Эффекты", EffectsHud.boundsX, EffectsHud.boundsY, EffectsHud.boundsW, EffectsHud.boundsH, hover == EFFECTS);
         outline(g, font, "Алмазы", DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH, hover == DIAMOND);
         outline(g, font, "Уведомления", DiamondHud.toastBX, DiamondHud.toastBY, DiamondHud.toastBW, DiamondHud.toastBH, hover == TOAST);
 
@@ -193,9 +211,8 @@ public class HudEditor extends Screen {
     }
 
     private static void button(GuiGraphicsExtractor g, Font font, String text, int x, int y, boolean hover) {
-        Ui.roundGradient(g, x, y, BTN_W, BTN_H, 4,
-                hover ? Ui.CARD_HOT_TOP : Ui.CARD_TOP, hover ? Ui.CARD_HOT_BOT : Ui.CARD_BOT);
-        Ui.roundOutline(g, x, y, BTN_W, BTN_H, 4, hover ? Ui.ACCENT : Ui.BORDER);
+        Ui.roundFill(g, x, y, BTN_W, BTN_H, 5, hover ? 0xFF14161C : 0xFF0E0F13);
+        Ui.roundOutline(g, x, y, BTN_W, BTN_H, 5, hover ? Ui.ACCENT : 0xFF23252C);
         g.text(font, text, x + (BTN_W - font.width(text)) / 2, y + 5, Ui.TEXT, true);
     }
 
