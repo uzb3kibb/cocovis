@@ -19,22 +19,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CocoVis Control Center — redesigned dashboard with a persistent sidebar,
- * category counters, animated module cards and a compact status header.
+ * CocoVis Ultra Control Center.
+ * A wider, editorial-style control panel with a dedicated navigation rail,
+ * module cards, active-state accents and responsive sizing.
  */
 public class VisualsScreen extends Screen {
-    private static final int ROW_H = 52;
-    private static final int GAP = 7;
-    private static final int CAT_H = 31;
-    private static final int CAT_GAP = 5;
-    private static final int TOG_W = 34;
-    private static final int TOG_H = 16;
-    private static final int SET_W = 82;
-    private static final int SIDEBAR_W = 142;
-    private static final String VERSION = FabricLoader.getInstance().getModContainer(CocoVisClient.MOD_ID)
+    private static final int SIDEBAR_W = 176;
+    private static final int CARD_H = 70;
+    private static final int CARD_GAP = 9;
+    private static final int TOG_W = 38;
+    private static final int TOG_H = 18;
+    private static final int SET_W = 88;
+    private static final String VERSION = FabricLoader.getInstance()
+            .getModContainer(CocoVisClient.MOD_ID)
             .map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?");
 
-    private static int savedCategory = 0;
+    private static int savedCategory;
     private int catIndex = savedCategory;
     private int scroll;
     private int mX, mY;
@@ -44,11 +44,15 @@ public class VisualsScreen extends Screen {
     private final Map<Module, Float> hoverAnim = new HashMap<>();
     private final Map<Item, ItemStack> icons = new HashMap<>();
     private final float[] catHover = new float[ModuleManager.CATEGORIES.size()];
-    private int x0, y0, w, h, cX, cW, listTop, listBottom;
+    private int x0, y0, w, h, cX, cW, listTop, listBottom, topY;
 
-    public VisualsScreen() { super(Component.literal("CocoVis Control Center")); }
+    public VisualsScreen() {
+        super(Component.literal("CocoVis Ultra Control Center"));
+    }
 
-    private ItemStack icon(Item item) { return icons.computeIfAbsent(item, k -> new ItemStack(k)); }
+    private ItemStack icon(Item item) {
+        return icons.computeIfAbsent(item, k -> new ItemStack(k));
+    }
 
     private static float approach(float cur, float target, float step) {
         return cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step);
@@ -60,27 +64,33 @@ public class VisualsScreen extends Screen {
     }
 
     private void layout(int sw, int sh) {
-        w = Math.min(sw - 24, 590);
-        h = Math.min(sh - 24, 350);
+        w = Math.min(sw - 36, 900);
+        h = Math.min(sh - 36, 520);
+        w = Math.max(500, w);
+        h = Math.max(300, h);
         x0 = (sw - w) / 2;
         y0 = (sh - h) / 2;
     }
 
-    private List<Module> modules() { return ModuleManager.CATEGORIES.get(catIndex).modules(); }
+    private List<Module> modules() {
+        return ModuleManager.CATEGORIES.get(catIndex).modules();
+    }
 
     private String fit(Font font, String s, int maxW) {
         if (maxW <= 0) return "";
         if (font.width(s) <= maxW) return s;
-        String ellipsis = "…";
-        while (!s.isEmpty() && font.width(s + ellipsis) > maxW) s = s.substring(0, s.length() - 1);
-        return s + ellipsis;
+        String suffix = "…";
+        while (!s.isEmpty() && font.width(s + suffix) > maxW) {
+            s = s.substring(0, s.length() - 1);
+        }
+        return s + suffix;
     }
 
-    private void bigText(GuiGraphicsExtractor g, Font font, String text, int x, int y, float scale, int color) {
+    private void scaledText(GuiGraphicsExtractor g, String value, int x, int y, float scale, int color) {
         g.pose().pushMatrix();
         g.pose().translate((float) x, (float) y);
         g.pose().scale(scale, scale);
-        g.text(font, text, 0, 0, color, true);
+        g.text(Minecraft.getInstance().font, value, 0, 0, color, true);
         g.pose().popMatrix();
     }
 
@@ -92,20 +102,23 @@ public class VisualsScreen extends Screen {
 
     private int totalEnabled() {
         int count = 0;
-        for (ModuleManager.Category category : ModuleManager.CATEGORIES)
+        for (ModuleManager.Category category : ModuleManager.CATEGORIES) {
             count += enabledCount(category.modules());
+        }
         return count;
     }
 
     private int totalModules() {
         int count = 0;
-        for (ModuleManager.Category category : ModuleManager.CATEGORIES) count += category.modules().size();
+        for (ModuleManager.Category category : ModuleManager.CATEGORIES) {
+            count += category.modules().size();
+        }
         return count;
     }
 
     private int maxScroll() {
-        int content = modules().size() * (ROW_H + GAP) - GAP;
-        return Math.max(0, content - (listBottom - listTop));
+        int content = modules().size() * (CARD_H + CARD_GAP) - CARD_GAP;
+        return Math.max(0, content - Math.max(1, listBottom - listTop));
     }
 
     @Override
@@ -114,187 +127,219 @@ public class VisualsScreen extends Screen {
         mY = mouseY;
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
+
         long now = System.nanoTime();
         float dt = Math.min(0.1f, (now - lastNs) / 1_000_000_000f);
         lastNs = now;
-        open = approach(open, 1f, dt * 5.5f);
+        open = approach(open, 1f, dt * 4.8f);
         float e = ease();
 
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
         layout(sw, sh);
-        int oy = Math.round((1f - e) * 18f);
-        int top = y0 + oy;
+        topY = y0 + Math.round((1f - e) * 22f);
 
-        g.fill(0, 0, sw, sh, Ui.fade(0xFF08060D, 0.72f * e));
-        // Soft ambient light behind the control center.
-        Ui.roundFill(g, x0 - 5, top + 8, w + 10, h + 8, 12, Ui.fade(0xFF7651A8, 0.10f));
-        Ui.panel(g, x0, top, w, h);
+        // Dimmed world and atmospheric accent bloom.
+        g.fill(0, 0, sw, sh, Ui.fade(0xFF07060C, 0.78f * e));
+        Ui.roundFill(g, x0 - 18, topY + 22, w + 36, h + 22, 18, Ui.fade(0xFF7952B5, 0.075f));
+        Ui.roundFill(g, x0 + w / 2 - 150, topY - 16, 300, 3, 2, Ui.fade(Ui.ACCENT, 0.35f));
 
-        // Brand block
-        Ui.roundFill(g, x0 + 10, top + 10, SIDEBAR_W - 20, 43, 7, 0xFF211A30);
-        Ui.roundFill(g, x0 + 10, top + 10, 3, 43, 2, Ui.ACCENT);
-        bigText(g, font, "CocoVis", x0 + 20, top + 15, 1.35f, Ui.TEXT);
-        g.text(font, "CONTROL CENTER  ·  v" + VERSION, x0 + 20, top + 34, Ui.MUTED, true);
+        Ui.shadow(g, x0, topY, w, h, 13);
+        Ui.roundGradient(g, x0, topY, w, h, 13, 0xFF1C1826, 0xFF100E17);
+        Ui.roundOutline(g, x0, topY, w, h, 13, 0xFF443653);
 
-        // Sidebar categories
-        int catY = top + 65;
-        g.text(font, "РАЗДЕЛЫ", x0 + 15, catY - 12, Ui.DIM, true);
+        // Top brand strip.
+        Ui.roundFill(g, x0 + 1, topY + 1, w - 2, 3, 2, Ui.ACCENT);
+        Ui.roundFill(g, x0 + 17, topY + 16, SIDEBAR_W - 34, 58, 9, 0xFF251E32);
+        Ui.roundFill(g, x0 + 17, topY + 16, 3, 58, 2, Ui.ACCENT);
+        scaledText(g, "CocoVis", x0 + 30, topY + 23, 1.55f, Ui.TEXT);
+        g.text(font, "ULTRA CONTROL CENTER", x0 + 31, topY + 48, Ui.ACCENT, true);
+        g.text(font, "BUILD  " + VERSION, x0 + 31, topY + 61, Ui.DIM, true);
+
+        // Sidebar navigation.
+        int navTitleY = topY + 91;
+        g.text(font, "WORKSPACE", x0 + 22, navTitleY, Ui.DIM, true);
+        int navY = navTitleY + 14;
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
             ModuleManager.Category category = ModuleManager.CATEGORIES.get(i);
-            int cx = x0 + 9;
-            int cy = catY + i * (CAT_H + CAT_GAP);
-            int cw = SIDEBAR_W - 18;
-            boolean hover = Ui.inside(mX, mY, cx, cy, cw, CAT_H);
-            catHover[i] = approach(catHover[i], hover ? 1f : 0f, dt * 8f);
+            int nx = x0 + 15;
+            int ny = navY + i * 48;
+            int nw = SIDEBAR_W - 30;
+            boolean hover = Ui.inside(mX, mY, nx, ny, nw, 41);
+            catHover[i] = approach(catHover[i], hover ? 1f : 0f, dt * 7f);
             boolean selected = i == catIndex;
+
             if (selected) {
-                Ui.roundGradient(g, cx, cy, cw, CAT_H, 6, Ui.CARD_HOT_TOP, Ui.CARD_HOT_BOT);
-                Ui.roundFill(g, cx, cy + 7, 2, CAT_H - 14, 1, Ui.ACCENT);
+                Ui.roundGradient(g, nx, ny, nw, 41, 8, 0xFF352A47, 0xFF282033);
+                Ui.roundOutline(g, nx, ny, nw, 41, 8, 0xFF57436F);
+                Ui.roundFill(g, nx, ny + 8, 3, 25, 2, Ui.ACCENT);
             } else if (catHover[i] > 0.01f) {
-                Ui.roundFill(g, cx, cy, cw, CAT_H, 6, Ui.fade(Ui.CARD_TOP, catHover[i]));
+                Ui.roundFill(g, nx, ny, nw, 41, 8, Ui.fade(0xFF514260, catHover[i] * 0.55f));
             }
-            g.item(icon(category.icon()), cx + 8, cy + 7);
-            g.text(font, category.name(), cx + 31, cy + 11, selected ? Ui.TEXT : Ui.MUTED, true);
+
+            Ui.roundFill(g, nx + 8, ny + 7, 27, 27, 7,
+                    selected ? 0xFF463458 : 0xFF292431);
+            g.item(icon(category.icon()), nx + 13, ny + 12);
+            g.text(font, category.name(), nx + 43, ny + 9,
+                    selected ? Ui.TEXT : Ui.MUTED, true);
             String count = enabledCount(category.modules()) + "/" + category.modules().size();
-            g.text(font, count, cx + cw - font.width(count) - 8, cy + 11,
+            g.text(font, count, nx + nw - font.width(count) - 9, ny + 24,
                     selected ? Ui.ACCENT : Ui.DIM, true);
         }
 
-        // Sidebar status panel
-        int statusY = top + h - 58;
-        Ui.roundGradient(g, x0 + 10, statusY, SIDEBAR_W - 20, 44, 6, 0xFF1D1928, 0xFF17131F);
-        g.text(font, "АКТИВНЫЕ МОДУЛИ", x0 + 18, statusY + 8, Ui.DIM, true);
-        bigText(g, font, String.valueOf(totalEnabled()), x0 + 18, statusY + 20, 1.15f, Ui.ACCENT);
-        String total = "/ " + totalModules() + " включено";
-        g.text(font, total, x0 + 38, statusY + 25, Ui.MUTED, true);
+        // Sidebar footer stats.
+        int footerY = topY + h - 77;
+        Ui.roundGradient(g, x0 + 16, footerY, SIDEBAR_W - 32, 59, 9, 0xFF282137, 0xFF1C1827);
+        g.text(font, "SYSTEM STATUS", x0 + 26, footerY + 9, Ui.DIM, true);
+        Ui.roundFill(g, x0 + 27, footerY + 26, 7, 7, 4, Ui.GOOD);
+        scaledText(g, String.valueOf(totalEnabled()), x0 + 41, footerY + 22, 1.15f, Ui.TEXT);
+        String stat = " / " + totalModules() + " modules active";
+        g.text(font, stat, x0 + 58, footerY + 30, Ui.MUTED, true);
 
-        // Vertical separator
-        g.fill(x0 + SIDEBAR_W, top + 10, x0 + SIDEBAR_W + 1, top + h - 10, Ui.BORDER);
+        // Sidebar divider.
+        g.fill(x0 + SIDEBAR_W, topY + 15, x0 + SIDEBAR_W + 1, topY + h - 15, 0xFF393044);
 
-        // Main content header and live status chip
+        // Main workspace header.
+        cX = x0 + SIDEBAR_W + 25;
+        cW = w - SIDEBAR_W - 48;
         ModuleManager.Category category = ModuleManager.CATEGORIES.get(catIndex);
-        cX = x0 + SIDEBAR_W + 16;
-        cW = w - SIDEBAR_W - 30;
-        bigText(g, font, category.name(), cX, top + 13, 1.35f, Ui.TEXT);
-        g.text(font, category.subtitle(), cX, top + 32, Ui.MUTED, true);
+        scaledText(g, category.name(), cX, topY + 21, 1.55f, Ui.TEXT);
+        g.text(font, category.subtitle(), cX + 1, topY + 46, Ui.MUTED, true);
 
-        String active = enabledCount(modules()) + " АКТИВНО";
-        int chipW = font.width(active) + 16;
-        int chipX = x0 + w - chipW - 15;
-        Ui.roundFill(g, chipX, top + 13, chipW, 19, 8, 0xFF292039);
-        Ui.roundFill(g, chipX + 7, top + 20, 5, 5, 3, Ui.GOOD);
-        g.text(font, active, chipX + 16, top + 19, Ui.TEXT, true);
+        String active = enabledCount(modules()) + " ENABLED";
+        int chipW = font.width(active) + 28;
+        int chipX = x0 + w - chipW - 22;
+        Ui.roundFill(g, chipX, topY + 22, chipW, 24, 12, 0xFF292239);
+        Ui.roundFill(g, chipX + 9, topY + 31, 6, 6, 3, Ui.GOOD);
+        g.text(font, active, chipX + 20, topY + 30, Ui.TEXT, true);
 
-        // Accent divider under header
-        Ui.hBar(g, cX, top + 52, Math.min(cW, 90), 2, Ui.ACCENT, Ui.ACCENT2);
-        Ui.hBar(g, cX + Math.min(cW, 90), top + 52, Math.max(0, cW - 90), 1, Ui.BORDER, Ui.BORDER);
+        // Header separator and accent.
+        g.fill(cX, topY + 78, cX + cW, topY + 79, 0xFF393044);
+        Ui.hBar(g, cX, topY + 77, Math.min(112, cW), 2, Ui.ACCENT, Ui.ACCENT2);
 
-        listTop = top + 63;
-        listBottom = top + h - 29;
+        // List heading.
+        listTop = topY + 96;
+        listBottom = topY + h - 30;
         scroll = Math.max(0, Math.min(scroll, maxScroll()));
+        g.text(font, "MODULES", cX + 2, topY + 86, Ui.DIM, true);
+        String countLabel = modules().size() + " FEATURES";
+        g.text(font, countLabel, cX + cW - font.width(countLabel), topY + 86, Ui.DIM, true);
 
         g.enableScissor(cX - 2, listTop, cX + cW + 2, listBottom);
         List<Module> mods = modules();
         for (int i = 0; i < mods.size(); i++) {
             Module module = mods.get(i);
-            int cy = listTop + i * (ROW_H + GAP) - scroll;
-            if (cy + ROW_H < listTop || cy > listBottom) continue;
+            int cy = listTop + i * (CARD_H + CARD_GAP) - scroll;
+            if (cy + CARD_H < listTop || cy > listBottom) continue;
 
-            boolean hover = Ui.inside(mX, mY, cX, cy, cW, ROW_H) && mY >= listTop && mY < listBottom;
+            boolean hover = Ui.inside(mX, mY, cX, cy, cW, CARD_H)
+                    && mY >= listTop && mY < listBottom;
             float hv = approach(hoverAnim.getOrDefault(module, 0f), hover ? 1f : 0f, dt * 8f);
             hoverAnim.put(module, hv);
             boolean enabled = module.isEnabled();
 
-            Ui.roundGradient(g, cX, cy, cW, ROW_H, 7,
-                    Ui.mix(Ui.CARD_TOP, Ui.CARD_HOT_TOP, hv), Ui.mix(Ui.CARD_BOT, Ui.CARD_HOT_BOT, hv));
-            Ui.roundOutline(g, cX, cy, cW, ROW_H, 7,
-                    Ui.mix(Ui.BORDER, Ui.fade(Ui.ACCENT, 0.72f), hv));
+            int cardTop = Ui.mix(0xFF211C2B, 0xFF30263D, hv);
+            int cardBot = Ui.mix(0xFF191622, 0xFF241D30, hv);
+            Ui.roundGradient(g, cX, cy, cW, CARD_H, 10, cardTop, cardBot);
+            Ui.roundOutline(g, cX, cy, cW, CARD_H, 10,
+                    enabled ? Ui.mix(0xFF4B3B5E, Ui.ACCENT, hv * 0.45f) : Ui.mix(Ui.BORDER, 0xFF6D5A80, hv));
+            if (enabled) {
+                Ui.roundFill(g, cX + 1, cy + 12, 3, CARD_H - 24, 2, Ui.ACCENT);
+                Ui.roundFill(g, cX + 7, cy + 7, 42, 56, 9, 0xFF30243E);
+                Ui.roundFill(g, cX + 7, cy + 7, 42, 2, 1, Ui.fade(Ui.ACCENT, 0.85f));
+            } else {
+                Ui.roundFill(g, cX + 7, cy + 7, 42, 56, 9, 0xFF282330);
+            }
+            g.item(icon(module.icon), cX + 20, cy + 24);
 
-            // Icon tile, with a subtle enabled glow.
-            int tile = enabled ? 0xFF302440 : 0xFF292631;
-            Ui.roundFill(g, cX + 8, cy + 9, 34, 34, 7, tile);
-            if (enabled) Ui.roundFill(g, cX + 8, cy + 9, 2, 34, 1, Ui.ACCENT);
-            g.item(icon(module.icon), cX + 17, cy + 17);
-
-            int tx = cX + cW - TOG_W - 12;
-            int ty = cy + (ROW_H - TOG_H) / 2;
-            int rightEdge = tx;
+            int tx = cX + cW - TOG_W - 15;
+            int ty = cy + (CARD_H - TOG_H) / 2;
+            int settingsX = tx;
             if (module.settings != null) {
-                int sx = tx - SET_W - 9;
-                int sy = cy + (ROW_H - 19) / 2;
-                boolean sHover = Ui.inside(mX, mY, sx, sy, SET_W, 19);
-                Ui.roundGradient(g, sx, sy, SET_W, 19, 5,
-                        sHover ? Ui.CARD_HOT_TOP : 0xFF282333, sHover ? Ui.CARD_HOT_BOT : Ui.CARD_BOT);
-                Ui.roundOutline(g, sx, sy, SET_W, 19, 5, sHover ? Ui.ACCENT : Ui.BORDER);
-                String label = fit(font, module.settingsLabel, SET_W - 10);
-                g.text(font, label, sx + (SET_W - font.width(label)) / 2, sy + 6,
-                        sHover ? Ui.TEXT : Ui.MUTED, true);
-                rightEdge = sx;
+                int sx = tx - SET_W - 11;
+                int sy = cy + (CARD_H - 23) / 2;
+                boolean settingsHover = Ui.inside(mX, mY, sx, sy, SET_W, 23);
+                Ui.roundGradient(g, sx, sy, SET_W, 23, 6,
+                        settingsHover ? 0xFF443451 : 0xFF292332,
+                        settingsHover ? 0xFF35283F : 0xFF211D2B);
+                Ui.roundOutline(g, sx, sy, SET_W, 23, 6,
+                        settingsHover ? Ui.ACCENT : 0xFF44394F);
+                String label = fit(font, module.settingsLabel, SET_W - 12);
+                g.text(font, label, sx + (SET_W - font.width(label)) / 2, sy + 8,
+                        settingsHover ? Ui.TEXT : Ui.MUTED, true);
+                settingsX = sx;
             }
 
-            int textX = cX + 51;
-            int textMax = rightEdge - textX - 10;
-            g.text(font, fit(font, module.name, textMax), textX, cy + 11, Ui.TEXT, true);
-            g.text(font, fit(font, module.description(), textMax), textX, cy + 29,
+            int textX = cX + 63;
+            int textMax = settingsX - textX - 13;
+            g.text(font, fit(font, module.name, textMax), textX, cy + 17,
+                    enabled ? Ui.TEXT : 0xFFD5D0DE, true);
+            g.text(font, fit(font, module.description(), textMax), textX, cy + 39,
                     enabled ? Ui.MUTED : Ui.DIM, true);
 
             float ta = approach(toggleAnim.getOrDefault(module, enabled ? 1f : 0f),
-                    enabled ? 1f : 0f, dt * 9f);
+                    enabled ? 1f : 0f, dt * 10f);
             toggleAnim.put(module, ta);
-            Ui.roundFill(g, tx, ty, TOG_W, TOG_H, 8,
-                    Ui.mix(0xFF3A3544, Ui.ACCENT, ta));
-            int kx = tx + 2 + Math.round(ta * (TOG_W - 14));
-            Ui.roundFill(g, kx, ty + 2, 12, 12, 6, 0xFFF8F5FF);
+            Ui.roundFill(g, tx - 2, ty - 2, TOG_W + 4, TOG_H + 4, 11,
+                    Ui.fade(Ui.ACCENT, ta * 0.12f));
+            Ui.roundFill(g, tx, ty, TOG_W, TOG_H, 9,
+                    Ui.mix(0xFF3B3544, 0xFFB58CFF, ta));
+            int knobX = tx + 2 + Math.round(ta * (TOG_W - 16));
+            Ui.roundFill(g, knobX, ty + 2, 14, 14, 7, 0xFFF8F5FF);
         }
         g.disableScissor();
 
-        int ms = maxScroll();
-        if (ms > 0) {
+        int max = maxScroll();
+        if (max > 0) {
             int trackH = listBottom - listTop;
-            int barH = Math.max(18, trackH * trackH / (trackH + ms));
-            int barY = listTop + Math.round((trackH - barH) * (scroll / (float) ms));
-            Ui.roundFill(g, cX + cW + 4, listTop, 2, trackH, 1, Ui.BORDER);
-            Ui.roundFill(g, cX + cW + 4, barY, 2, barH, 1, Ui.ACCENT);
+            int thumbH = Math.max(22, trackH * trackH / (trackH + max));
+            int thumbY = listTop + Math.round((trackH - thumbH) * (scroll / (float) max));
+            Ui.roundFill(g, cX + cW + 7, listTop, 2, trackH, 1, 0xFF302A3A);
+            Ui.roundFill(g, cX + cW + 7, thumbY, 2, thumbH, 1, Ui.ACCENT);
         }
 
-        g.text(font, "Esc — закрыть  ·  Колесо — прокрутка",
-                cX, top + h - 16, Ui.DIM, true);
+        String footer = "ESC  CLOSE     •     SCROLL  BROWSE";
+        g.text(font, footer, cX, topY + h - 17, Ui.DIM, true);
+        String brand = "COCOVIS  /  CLIENT UI";
+        g.text(font, brand, x0 + w - font.width(brand) - 19, topY + h - 17, Ui.DIM, true);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        int top = y0 + Math.round((1f - ease()) * 18f);
-        int catY = top + 65;
+        int navTitleY = topY + 91;
+        int navY = navTitleY + 14;
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
-            int cy = catY + i * (CAT_H + CAT_GAP);
-            if (Ui.inside(mX, mY, x0 + 9, cy, SIDEBAR_W - 18, CAT_H)) {
+            int ny = navY + i * 48;
+            if (Ui.inside(mX, mY, x0 + 15, ny, SIDEBAR_W - 30, 41)) {
                 catIndex = i;
                 savedCategory = i;
                 scroll = 0;
                 return true;
             }
         }
+
         if (mY >= listTop && mY < listBottom) {
             List<Module> mods = modules();
             for (int i = 0; i < mods.size(); i++) {
                 Module module = mods.get(i);
-                int cy = listTop + i * (ROW_H + GAP) - scroll;
-                if (!Ui.inside(mX, mY, cX, cy, cW, ROW_H)) continue;
-                int tx = cX + cW - TOG_W - 12;
-                int ty = cy + (ROW_H - TOG_H) / 2;
-                if (Ui.inside(mX, mY, tx - 5, ty - 5, TOG_W + 10, TOG_H + 10)) {
+                int cy = listTop + i * (CARD_H + CARD_GAP) - scroll;
+                if (!Ui.inside(mX, mY, cX, cy, cW, CARD_H)) continue;
+
+                int tx = cX + cW - TOG_W - 15;
+                int ty = cy + (CARD_H - TOG_H) / 2;
+                if (Ui.inside(mX, mY, tx - 6, ty - 7, TOG_W + 12, TOG_H + 14)) {
                     module.toggle();
                     return true;
                 }
                 if (module.settings != null) {
-                    int sx = tx - SET_W - 9;
-                    int sy = cy + (ROW_H - 19) / 2;
-                    if (Ui.inside(mX, mY, sx, sy, SET_W, 19)) {
+                    int sx = tx - SET_W - 11;
+                    int sy = cy + (CARD_H - 23) / 2;
+                    if (Ui.inside(mX, mY, sx, sy, SET_W, 23)) {
                         module.settings.run();
                         return true;
                     }
                 }
+                module.toggle();
                 return true;
             }
         }
@@ -303,7 +348,7 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.round(scrollY * 22)));
+        scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.round(scrollY * 28)));
         return true;
     }
 
@@ -317,5 +362,7 @@ public class VisualsScreen extends Screen {
     }
 
     @Override
-    public boolean isPauseScreen() { return false; }
+    public boolean isPauseScreen() {
+        return false;
+    }
 }
