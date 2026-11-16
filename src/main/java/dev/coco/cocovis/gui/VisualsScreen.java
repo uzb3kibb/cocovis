@@ -9,6 +9,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -361,13 +362,14 @@ public class VisualsScreen extends Screen {
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searchFocused && !Character.isISOControl(chr)) {
-            search += chr;
+    public boolean charTyped(CharacterEvent event) {
+        String typed = event.codepointAsString();
+        if (searchFocused && event.isAllowedChatCharacter()) {
+            search += typed;
             scroll = 0;
             return true;
         }
-        return super.charTyped(chr, modifiers);
+        return super.charTyped(event);
     }
 
     @Override
