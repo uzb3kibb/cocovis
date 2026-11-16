@@ -116,11 +116,11 @@ public final class InfoHud {
     private static int drawRow(GuiGraphicsExtractor g, Font font, List<Pill> row, int y) {
         int x = 0;
         for (Pill p : row) {
-            int textW = font.width(p.text());
+            int textW = Ui.width(font, p.text());
             int w = 6 + 9 + 4 + textW + 7;
             Ui.roundFill(g, x, y, w, PILL_H, PILL_H / 2, BG);
             drawIcon(g, font, p, x + 6, y + (PILL_H - 9) / 2);
-            g.text(font, p.text(), x + 6 + 9 + 4, y + (PILL_H - 8) / 2 + 1, TEXT, false);
+            Ui.text(g, font, p.text(), x + 6 + 9 + 4, y + (PILL_H - 8) / 2 + 1, TEXT, false);
             x += w + GAP;
         }
         return Math.max(0, x - GAP);
@@ -130,7 +130,7 @@ public final class InfoHud {
     private static void drawIcon(GuiGraphicsExtractor g, Font font, Pill p, int x, int y) {
         int c = p.iconColor();
         switch (p.icon()) {
-            case LOGO -> g.text(font, "❖", x, y, c, false);
+            case LOGO -> Ui.diamond(g, x, y, 9, c);
             case USER -> {
                 Ui.roundFill(g, x, y, 9, 9, 4, 0xFF2C3039);
                 Ui.roundFill(g, x + 3, y + 1, 3, 3, 1, 0xFF8D93A0);
@@ -151,7 +151,10 @@ public final class InfoHud {
                 Ui.roundFill(g, x + 3, y + 2, 3, 3, 1, 0xFF1B1C21);
                 g.fill(x + 4, y + 7, x + 5, y + 9, c);
             }
-            case SPEED -> g.text(font, "»", x, y - 1, c, false);
+            case SPEED -> {
+                Ui.triangleRight(g, x, y + 1, 4, 7, c);
+                Ui.triangleRight(g, x + 5, y + 1, 4, 7, c);
+            }
         }
     }
 }

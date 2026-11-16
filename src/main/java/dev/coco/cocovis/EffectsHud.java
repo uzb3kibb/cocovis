@@ -101,10 +101,10 @@ public final class EffectsHud {
         if (maxW <= 0) {
             return "";
         }
-        if (font.width(s) <= maxW) {
+        if (Ui.width(font, s) <= maxW) {
             return s;
         }
-        while (!s.isEmpty() && font.width(s + "…") > maxW) {
+        while (!s.isEmpty() && Ui.width(font, s + "…") > maxW) {
             s = s.substring(0, s.length() - 1);
         }
         return s + "…";
@@ -138,17 +138,17 @@ public final class EffectsHud {
         int h = headH + list.size() * rowH + 4;
         Ui.card(g, 0, 0, w, h);
         drawFlask(g, 8, 6, TIME);
-        g.text(font, "Эффекты", 22, 7, TEXT, false);
+        Ui.text(g, font, "Эффекты", 22, 7, TEXT, false);
         String count = String.valueOf(list.size());
-        g.text(font, count, w - 8 - font.width(count), 7, MUTED, false);
+        Ui.text(g, font, count, w - 8 - Ui.width(font, count), 7, MUTED, false);
         for (int i = 0; i < list.size(); i++) {
             Entry e = list.get(i);
             int y = headH + i * rowH;
             drawIcon(g, e.id(), 8, y + 1, 16, e.color());
             String time = time(e, true);
-            int timeW = font.width(time);
-            g.text(font, fit(font, e.name() + " " + (e.amp() + 1), w - 30 - timeW - 14), 30, y + 4, TEXT, false);
-            g.text(font, time, w - 8 - timeW, y + 4, TIME, false);
+            int timeW = Ui.width(font, time);
+            Ui.text(g, font, fit(font, e.name() + " " + (e.amp() + 1), w - 30 - timeW - 14), 30, y + 4, TEXT, false);
+            Ui.text(g, font, time, w - 8 - timeW, y + 4, TIME, false);
             int bx = 8;
             int bw = w - 16;
             int by = y + 19;
@@ -164,21 +164,21 @@ public final class EffectsHud {
         int gap = 2;
         int maxW = 0;
         String head = "Эффекты";
-        int hw = 6 + 9 + 4 + font.width(head) + 7;
+        int hw = 6 + 9 + 4 + Ui.width(font, head) + 7;
         Ui.roundFill(g, 0, 0, hw, ph, 4, 0xCC1B1C21);
         drawFlask(g, 6, 2, TIME);
-        g.text(font, head, 19, 3, TEXT, false);
+        Ui.text(g, font, head, 19, 3, TEXT, false);
         maxW = hw;
         int y = ph + gap;
         for (Entry e : list) {
             String text = e.name() + (e.amp() > 0 ? " " + (e.amp() + 1) : "");
             String time = time(e, false);
-            int w = 4 + 10 + 4 + font.width(text) + 4 + font.width(time) + 6;
+            int w = 4 + 10 + 4 + Ui.width(font, text) + 4 + Ui.width(font, time) + 6;
             Ui.roundFill(g, 0, y, w, ph, 4, 0xCC1B1C21);
             drawIcon(g, e.id(), 4, y + 2, 10, e.color());
-            g.text(font, text, 18, y + 3, TEXT, false);
+            Ui.text(g, font, text, 18, y + 3, TEXT, false);
             boolean low = !e.infinite() && e.ticks() <= 100;
-            g.text(font, time, 18 + font.width(text) + 4, y + 3, low ? RED : TEXT, false);
+            Ui.text(g, font, time, 18 + Ui.width(font, text) + 4, y + 3, low ? RED : TEXT, false);
             maxW = Math.max(maxW, w);
             y += ph + gap;
         }

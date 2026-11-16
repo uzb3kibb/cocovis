@@ -58,10 +58,10 @@ public final class DiamondHud {
 
         int w = 130;
         for (int i = 0; i < 3; i++) {
-            w = Math.max(w, 28 + font.width(labels[i]) + 14 + font.width(values[i]) + 10);
+            w = Math.max(w, 28 + Ui.width(font, labels[i]) + 14 + Ui.width(font, values[i]) + 10);
         }
-        w = Math.max(w, 14 + font.width(totalText));
-        w = Math.max(w, 14 + font.width(memText));
+        w = Math.max(w, 14 + Ui.width(font, totalText));
+        w = Math.max(w, 14 + Ui.width(font, memText));
         int rowH = 18;
         int h = 22 + 3 * rowH + 4 + 12 + 12 + 6;
 
@@ -70,18 +70,18 @@ public final class DiamondHud {
         g.pose().translate((float) cfg.hudX, (float) cfg.hudY);
         g.pose().scale(s, s);
         Ui.card(g, 0, 0, w, h);
-        g.text(font, "Алмазы", 8, 7, Ui.ACCENT, true);
+        Ui.text(g, font, "Алмазы", 8, 7, Ui.ACCENT, true);
         Ui.hBar(g, 8, 18, w - 16, 1, Ui.ACCENT, Ui.fade(Ui.ACCENT, 0.05f));
         for (int i = 0; i < 3; i++) {
             int y = 22 + i * rowH;
             g.item(icons[i], 6, y);
-            g.text(font, labels[i], 28, y + 5, Ui.MUTED, true);
-            g.text(font, values[i], w - 8 - font.width(values[i]), y + 5, Ui.TEXT, true);
+            Ui.text(g, font, labels[i], 28, y + 5, Ui.MUTED, true);
+            Ui.text(g, font, values[i], w - 8 - Ui.width(font, values[i]), y + 5, Ui.TEXT, true);
         }
         int sepY = 22 + 3 * rowH + 2;
         g.fill(8, sepY, w - 8, sepY + 1, Ui.BORDER);
-        g.text(font, totalText, 8, sepY + 5, Ui.TEXT, true);
-        g.text(font, memText, 8, sepY + 17, Ui.DIM, true);
+        Ui.text(g, font, totalText, 8, sepY + 5, Ui.TEXT, true);
+        Ui.text(g, font, memText, 8, sepY + 17, Ui.DIM, true);
         g.pose().popMatrix();
 
         boundsX = cfg.hudX;
@@ -115,13 +115,13 @@ public final class DiamondHud {
         boolean gain = amount > 0;
         int color = gain ? Ui.GOOD : Ui.BAD;
         String text = (gain ? "+" : "-") + Fmt.num(Math.abs(amount)) + " " + Fmt.diamonds(amount);
-        int w = 8 + 16 + 6 + font.width(text) + 12;
+        int w = 8 + 16 + 6 + Ui.width(font, text) + 12;
         int h = 24;
         Ui.roundGradient(g, x, y, w, h, 4, Ui.fade(Ui.PANEL_TOP, alpha), Ui.fade(Ui.PANEL_BOT, alpha));
         Ui.roundOutline(g, x, y, w, h, 4, Ui.fade(Ui.BORDER, alpha));
         g.fill(x + 1, y + 4, x + 3, y + h - 4, Ui.fade(color, alpha));
         g.item(diamondIcon, x + 8, y + 4);
-        g.text(font, text, x + 30, y + 8, Ui.fade(color, alpha), true);
+        Ui.text(g, font, text, x + 30, y + 8, Ui.fade(color, alpha), true);
         toastBX = x;
         toastBY = y;
         toastBW = w;

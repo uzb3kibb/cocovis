@@ -13,9 +13,6 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,13 +61,13 @@ public class VisualsScreen extends Screen {
     private static final Set<String> COLLAPSED = new HashSet<>();
     private static int savedCategory;
 
-    private record Nav(String name, Item icon, Runnable action) {}
+    private record Nav(String name, int icon, Runnable action) {}
 
     private record Cell(int type, int x, int y, int w, int h, Module module, String key, String title) {}
 
     private final List<Nav> manage = List.of(
-            new Nav("Позиции HUD", Items.PAINTING, () -> Minecraft.getInstance().gui.setScreen(new HudEditor())),
-            new Nav("Сбросить позиции", Items.BARRIER, () -> {
+            new Nav("Позиции HUD", 4, () -> Minecraft.getInstance().gui.setScreen(new HudEditor())),
+            new Nav("Сбросить позиции", 5, () -> {
                 CocoVisConfig.get().resetPositions();
                 CocoVisConfig.save();
             }));
@@ -85,17 +82,12 @@ public class VisualsScreen extends Screen {
     private int contentHeight;
     private final Map<Module, Float> toggleAnim = new HashMap<>();
     private final Map<Module, Float> hoverAnim = new HashMap<>();
-    private final Map<Item, ItemStack> icons = new HashMap<>();
     private final float[] navHover = new float[8];
 
     private int x0, y0, w, h, topY, sbW, contentX, contentW, listTop, listBottom;
 
     public VisualsScreen() {
         super(Component.literal("CocoVis"));
-    }
-
-    private ItemStack icon(Item item) {
-        return icons.computeIfAbsent(item, k -> new ItemStack(k));
     }
 
     private static float approach(float cur, float target, float step) {
@@ -124,29 +116,58 @@ public class VisualsScreen extends Screen {
         if (maxW <= 0) {
             return "";
         }
-        if (font.width(s) <= maxW) {
+        if (Ui.width(font, s) <= maxW) {
             return s;
         }
-        while (!s.isEmpty() && font.width(s + "…") > maxW) {
+        while (!s.isEmpty() && Ui.width(font, s + "…") > maxW) {
             s = s.substring(0, s.length() - 1);
         }
         return s + "…";
+    }
+
+    private void bigTitle(GuiGraphicsExtractor g, Font font, String text, int x, int y, float scale, int color) {
+        g.pose().pushMatrix();
+        g.pose().translate((float) x, (float) y);
+        g.pose().scale(scale, scale);
+        Ui.title(g, font, text, 0, 0, color);
+        g.pose().popMatrix();
     }
 
     private void bigText(GuiGraphicsExtractor g, Font font, String text, int x, int y, float scale, int color) {
         g.pose().pushMatrix();
         g.pose().translate((float) x, (float) y);
         g.pose().scale(scale, scale);
-        g.text(font, text, 0, 0, color, true);
+        Ui.text(g, font, text, 0, 0, color, true);
         g.pose().popMatrix();
     }
 
-    private void drawIcon(GuiGraphicsExtractor g, Item item, int x, int y, float scale) {
-        g.pose().pushMatrix();
-        g.pose().translate((float) x, (float) y);
-        g.pose().scale(scale, scale);
-        g.item(icon(item), 0, 0);
-        g.pose().popMatrix();
+    /** Vector-style nav icons built from smooth shapes (12x12 box). */
+    private void drawNavIcon(GuiGraphicsExtractor g, int kind, int x, int y, int color) {
+        switch (kind) {
+            case 0 -> { // person
+                Ui.circle(g, x + 3, y, 6, color);
+                Ui.roundFill(g, x + 1, y + 7, 10, 5, 3, color);
+            }
+            case 1 -> Ui.diamond(g, x, y, 12, color);
+            case 2 -> { // grid
+                Ui.roundFill(g, x, y, 5, 5, 1, color);
+                Ui.roundFill(g, x + 7, y, 5, 5, 1, color);
+                Ui.roundFill(g, x, y + 7, 5, 5, 1, color);
+                Ui.roundFill(g, x + 7, y + 7, 5, 5, 1, color);
+            }
+            case 3 -> { // eye-like: ring + dot
+                Ui.ring(g, x, y, 12, color);
+                Ui.circle(g, x + 4, y + 4, 4, color);
+            }
+            case 4 -> { // move: plus
+                Ui.roundFill(g, x + 5, y, 2, 12, 1, color);
+                Ui.roundFill(g, x, y + 5, 12, 2, 1, color);
+            }
+            default -> { // reset: ring with a tip
+                Ui.ring(g, x, y + 1, 11, color);
+                Ui.triangleRight(g, x + 6, y - 1, 5, 5, color);
+            }
+        }
     }
 
     private List<ModuleManager.Section> activeSections() {
@@ -234,8 +255,8 @@ public class VisualsScreen extends Screen {
         Ui.roundOutline(g, x0, topY, w, h, 6, DIVIDER);
 
         // ---------- sidebar ----------
-        int logoW = Math.round(font.width("CocoVis") * 1.5f);
-        bigText(g, font, "CocoVis", x0 + (sbW - logoW) / 2, topY + 19, 1.5f, BLUE);
+        int logoW = Math.round(Ui.titleWidth(font, "CocoVis") * 1.5f);
+        bigTitle(g, font, "CocoVis", x0 + (sbW - logoW) / 2, topY + 17, 1.5f, BLUE);
         g.fill(x0 + 1, topY + 50, x0 + sbW, topY + 51, DIVIDER);
         g.fill(x0 + sbW, topY + 1, x0 + sbW + 1, topY + h - 1, DIVIDER);
 
@@ -245,7 +266,7 @@ public class VisualsScreen extends Screen {
             int nx = x0 + 8;
             int ny = navTop() + i * (NAV_H + NAV_GAP);
             int nw = sbW - 16;
-            drawNav(g, font, category.name(), category.icon(), nx, ny, nw, i == catIndex, i, dt);
+            drawNav(g, font, category.name(), i, nx, ny, nw, i == catIndex, i, dt);
         }
         bigText(g, font, "УПРАВЛЕНИЕ", x0 + 14, manageTop() - 14, 0.8f, MUTED);
         for (int i = 0; i < manage.size(); i++) {
@@ -258,10 +279,10 @@ public class VisualsScreen extends Screen {
         int fy = topY + h - 40;
         g.fill(x0 + 1, fy - 8, x0 + sbW, fy - 7, DIVIDER);
         Ui.roundFill(g, x0 + 12, fy, 24, 24, 12, 0xFF1B1C22);
-        g.text(font, "?", x0 + 21, fy + 8, 0xFF7A7F8A, true);
+        Ui.text(g, font, "?", x0 + 21, fy + 8, 0xFF7A7F8A, true);
         String nick = mc.player != null ? mc.player.getName().getString() : "CocoVis";
-        g.text(font, fit(font, nick, sbW - 52), x0 + 44, fy + 3, TEXT, true);
-        g.text(font, "CocoVis " + VERSION, x0 + 44, fy + 14, MUTED, true);
+        Ui.text(g, font, fit(font, nick, sbW - 52), x0 + 44, fy + 3, TEXT, true);
+        Ui.text(g, font, "CocoVis " + VERSION, x0 + 44, fy + 14, MUTED, true);
 
         // ---------- search ----------
         int sy = topY + 10;
@@ -269,15 +290,14 @@ public class VisualsScreen extends Screen {
         Ui.roundOutline(g, contentX, sy, contentW, 26, 6, searchFocused ? 0xFF3A4668 : FIELD_LINE);
         int mc0 = searchFocused ? BLUE : MUTED;
         Ui.roundOutline(g, contentX + 10, sy + 8, 8, 8, 4, mc0);
-        g.fill(contentX + 17, sy + 15, contentX + 19, sy + 17, mc0);
-        g.fill(contentX + 19, sy + 17, contentX + 21, sy + 19, mc0);
+        Ui.diamond(g, contentX + 16, sy + 15, 5, mc0);
         if (search.isEmpty()) {
-            g.text(font, "Поиск", contentX + 28, sy + 9, MUTED, true);
+            Ui.text(g, font, "Поиск", contentX + 28, sy + 9, MUTED, true);
         } else {
-            g.text(font, fit(font, search, contentW - 44), contentX + 28, sy + 9, TEXT, true);
+            Ui.text(g, font, fit(font, search, contentW - 44), contentX + 28, sy + 9, TEXT, true);
         }
         if (searchFocused && (System.currentTimeMillis() / 500) % 2 == 0) {
-            int cx = contentX + 28 + (search.isEmpty() ? 0 : font.width(fit(font, search, contentW - 44)));
+            int cx = contentX + 28 + (search.isEmpty() ? 0 : Ui.width(font, fit(font, search, contentW - 44)));
             g.fill(cx + 1, sy + 7, cx + 2, sy + 19, TEXT);
         }
 
@@ -297,9 +317,12 @@ public class VisualsScreen extends Screen {
             }
             if (cell.type() == 0) {
                 boolean collapsed = COLLAPSED.contains(cell.key());
-                g.text(font, cell.title(), cell.x(), cell.y() + 8, BLUE, true);
-                g.text(font, cell.title(), cell.x() + 1, cell.y() + 8, BLUE, false);
-                g.text(font, collapsed ? "▸" : "▾", cell.x() + cell.w() - 12, cell.y() + 8, MUTED, true);
+                Ui.title(g, font, cell.title(), cell.x(), cell.y() + 8, BLUE);
+                if (collapsed) {
+                    Ui.triangleRight(g, cell.x() + cell.w() - 12, cell.y() + 8, 4, 7, MUTED);
+                } else {
+                    Ui.triangleDown(g, cell.x() + cell.w() - 13, cell.y() + 10, 7, 4, MUTED);
+                }
                 g.fill(cell.x(), cell.y() + TITLE_H - 2, cell.x() + cell.w(), cell.y() + TITLE_H - 1, DIVIDER);
             } else {
                 boolean inView = mY >= listTop && mY < listBottom;
@@ -325,7 +348,7 @@ public class VisualsScreen extends Screen {
         }
     }
 
-    private void drawNav(GuiGraphicsExtractor g, Font font, String name, Item icon, int x, int y, int w,
+    private void drawNav(GuiGraphicsExtractor g, Font font, String name, int icon, int x, int y, int w,
                          boolean selected, int hoverIndex, float dt) {
         boolean hover = Ui.inside(mX, mY, x, y, w, NAV_H);
         navHover[hoverIndex] = approach(navHover[hoverIndex], hover ? 1f : 0f, dt * 9f);
@@ -335,8 +358,8 @@ public class VisualsScreen extends Screen {
         } else if (navHover[hoverIndex] > 0.01f) {
             Ui.roundFill(g, x, y, w, NAV_H, 7, Ui.fade(0xFF111218, navHover[hoverIndex]));
         }
-        drawIcon(g, icon, x + 10, y + 8, 0.75f);
-        g.text(font, fit(font, name, w - 38), x + 29, y + 10, selected ? TEXT : NAV_TEXT, true);
+        drawNavIcon(g, icon, x + 11, y + 8, selected ? BLUE : NAV_TEXT);
+        Ui.text(g, font, fit(font, name, w - 38), x + 29, y + 10, selected ? TEXT : NAV_TEXT, true);
     }
 
     private void drawRow(GuiGraphicsExtractor g, Font font, Cell cell, boolean hover, float dt) {
@@ -355,11 +378,14 @@ public class VisualsScreen extends Screen {
         int tx = x + rw - TOG_W - 10;
         int ty = y + (ROW_H - TOG_H) / 2;
         int textMax = tx - (module.settings != null ? 28 : 0) - (x + 10) - 6;
-        g.text(font, fit(font, module.name, textMax), x + 10, y + 12, enabled ? TEXT : ROW_TEXT, true);
+        Ui.text(g, font, fit(font, module.name, textMax), x + 10, y + 12, enabled ? TEXT : ROW_TEXT, true);
 
         if (module.settings != null) {
             boolean sh = Ui.inside(mX, mY, tx - 26, y, 22, ROW_H);
-            g.text(font, "···", tx - 22, y + 11, sh ? TEXT : MUTED, true);
+            int dc = sh ? TEXT : MUTED;
+            for (int d = 0; d < 3; d++) {
+                Ui.circle(g, tx - 25 + d * 6, y + ROW_H / 2 - 1, 3, dc);
+            }
         }
 
         float ta = approach(toggleAnim.getOrDefault(module, enabled ? 1f : 0f), enabled ? 1f : 0f, dt * 11f);
@@ -371,12 +397,12 @@ public class VisualsScreen extends Screen {
 
     private void drawTooltip(GuiGraphicsExtractor g, Font font, String text, int sw) {
         String t = fit(font, text, 240);
-        int tw = font.width(t) + 12;
+        int tw = Ui.width(font, t) + 12;
         int tx = Math.min(mX + 12, sw - tw - 4);
         int ty = mY + 14;
         Ui.roundFill(g, tx, ty, tw, 18, 4, 0xF0101114);
         Ui.roundOutline(g, tx, ty, tw, 18, 4, 0xFF2A2C34);
-        g.text(font, t, tx + 6, ty + 5, ROW_TEXT, true);
+        Ui.text(g, font, t, tx + 6, ty + 5, ROW_TEXT, true);
     }
 
     @Override

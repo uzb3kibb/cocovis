@@ -198,7 +198,7 @@ public class HudEditor extends Screen {
         button(g, font, "Готово", doneX(), btnY(), Ui.inside(mX, mY, doneX(), btnY(), BTN_W, BTN_H));
 
         String hint = "Тяни панели мышью  ·  колесо над панелью: размер  ·  Esc: сохранить и выйти";
-        g.text(font, hint, (sw() - font.width(hint)) / 2, btnY() - 14, Ui.MUTED, true);
+        Ui.text(g, font, hint, (sw() - Ui.width(font, hint)) / 2, btnY() - 14, Ui.MUTED, true);
     }
 
     private static void outline(GuiGraphicsExtractor g, Font font, String label, int x, int y, int w, int h, boolean active) {
@@ -207,13 +207,13 @@ public class HudEditor extends Screen {
         }
         int color = active ? Ui.ACCENT : Ui.fade(Ui.MUTED, 0.6f);
         Ui.roundOutline(g, x - 2, y - 2, w + 4, h + 4, 5, color);
-        g.text(font, label, x, y - 12, color, true);
+        Ui.text(g, font, label, x, y - 12, color, true);
     }
 
     private static void button(GuiGraphicsExtractor g, Font font, String text, int x, int y, boolean hover) {
         Ui.roundFill(g, x, y, BTN_W, BTN_H, 5, hover ? 0xFF14161C : 0xFF0E0F13);
         Ui.roundOutline(g, x, y, BTN_W, BTN_H, 5, hover ? Ui.ACCENT : 0xFF23252C);
-        g.text(font, text, x + (BTN_W - font.width(text)) / 2, y + 5, Ui.TEXT, true);
+        Ui.text(g, font, text, x + (BTN_W - Ui.width(font, text)) / 2, y + 5, Ui.TEXT, true);
     }
 
     @Override

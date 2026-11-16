@@ -1,0 +1,3 @@
+The UI font is Inter (Medium and SemiBold, subset to Latin + Cyrillic).
+Copyright 2016-2023 The Inter Project Authors (https://github.com/rsms/inter)
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).

@@ -1,8 +1,19 @@
 package dev.coco.cocovis.gui;
 
+import dev.coco.cocovis.CocoVisClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 
-/** Small drawing helpers: dark rounded panels, gradients, colors. */
+import java.lang.reflect.Method;
+
+/**
+ * Drawing helpers. Shapes are rasterised at real-pixel precision with anti-aliased edges
+ * (not in blocky GUI pixels), text uses the bundled Inter font.
+ */
 public final class Ui {
     public static final int ACCENT = 0xFF7CA8FF;
     public static final int ACCENT2 = 0xFF9ABEFF;
@@ -22,6 +33,8 @@ public final class Ui {
     public static final int BORDER = 0xFF252D38;
 
     private Ui() {}
+
+    // ------------------------------------------------------------------ colors / hit tests
 
     public static int mix(int a, int b, float t) {
         t = Math.max(0f, Math.min(1f, t));
@@ -44,46 +57,141 @@ public final class Ui {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
-    private static int inset(int r, int i) {
-        int dy = r - i;
-        double dx = Math.sqrt((double) r * r - (double) dy * dy);
-        return r - (int) Math.floor(dx);
+    // ------------------------------------------------------------------ real-pixel raster core
+
+    private static int guiScale() {
+        return Math.max(1, (int) Math.round(Minecraft.getInstance().getWindow().getGuiScale()));
     }
 
-    public static void roundGradient(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int top, int bot) {
-        r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
-        for (int row = 0; row < h; row++) {
-            int ins = 0;
-            if (row < r) {
-                ins = inset(r, row);
-            } else if (row >= h - r) {
-                ins = inset(r, h - 1 - row);
-            }
-            float t = h <= 1 ? 0f : (float) row / (h - 1);
-            g.fill(x + ins, y + row, x + w - ins, y + row + 1, mix(top, bot, t));
+    /** Switches to "1 unit = 1 real screen pixel" coordinates with the origin at (x, y). */
+    private static int begin(GuiGraphicsExtractor g, int x, int y) {
+        int gs = guiScale();
+        g.pose().pushMatrix();
+        g.pose().translate((float) x, (float) y);
+        g.pose().scale(1f / gs, 1f / gs);
+        return gs;
+    }
+
+    private static void end(GuiGraphicsExtractor g) {
+        g.pose().popMatrix();
+    }
+
+    /** Horizontal inset of a rounded rect's edge at pixel row {@code row} (radius r, height h, real pixels). */
+    private static double inset(int r, int h, int row) {
+        if (r <= 0) {
+            return 0;
         }
+        double yc = row + 0.5;
+        double dy;
+        if (yc < r) {
+            dy = r - yc;
+        } else if (yc > h - r) {
+            dy = yc - (h - r);
+        } else {
+            return 0;
+        }
+        return r - Math.sqrt(Math.max(0.0, (double) r * r - dy * dy));
+    }
+
+    private static void px(GuiGraphicsExtractor g, int x, int row, int color, double coverage) {
+        if (coverage <= 0.02) {
+            return;
+        }
+        g.fill(x, row, x + 1, row + 1, fade(color, (float) Math.min(1.0, coverage)));
+    }
+
+    /** One pixel row filled from real-pixel x = a to x = b with anti-aliased ends. */
+    private static void span(GuiGraphicsExtractor g, int row, double a, double b, int color) {
+        if (b <= a) {
+            return;
+        }
+        int pa = (int) Math.floor(a);
+        int pb = (int) Math.floor(b);
+        if (pa == pb) {
+            px(g, pa, row, color, b - a);
+            return;
+        }
+        int fullStart = pa + 1;
+        double cl = pa + 1 - a;
+        if (cl < 0.98) {
+            px(g, pa, row, color, cl);
+        } else {
+            fullStart = pa;
+        }
+        int fullEnd = pb;
+        double cr = b - pb;
+        if (cr > 0.02) {
+            px(g, pb, row, color, cr);
+        }
+        if (fullEnd > fullStart) {
+            g.fill(fullStart, row, fullEnd, row + 1, color);
+        }
+    }
+
+    // ------------------------------------------------------------------ shapes
+
+    public static void roundGradient(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int top, int bot) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        int gs = begin(g, x, y);
+        int pw = w * gs;
+        int ph = h * gs;
+        int pr = Math.max(0, Math.min(r * gs, Math.min(pw, ph) / 2));
+        boolean flat = top == bot;
+        for (int row = 0; row < pr; row++) {
+            double a = inset(pr, ph, row);
+            span(g, row, a, pw - a, flat ? top : mix(top, bot, row / (float) Math.max(1, ph - 1)));
+            int mirror = ph - 1 - row;
+            span(g, mirror, a, pw - a, flat ? bot : mix(top, bot, mirror / (float) Math.max(1, ph - 1)));
+        }
+        if (ph - 2 * pr > 0) {
+            if (flat) {
+                g.fill(0, pr, pw, ph - pr, top);
+            } else {
+                for (int row = pr; row < ph - pr; row++) {
+                    g.fill(0, row, pw, row + 1, mix(top, bot, row / (float) Math.max(1, ph - 1)));
+                }
+            }
+        }
+        end(g);
     }
 
     public static void roundFill(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
         roundGradient(g, x, y, w, h, r, color, color);
     }
 
+    /** 1 GUI pixel (= {@code guiScale} real pixels) thick outline. */
     public static void roundOutline(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
-        r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
-        for (int row = 0; row < h; row++) {
-            int ins = 0;
-            if (row < r) {
-                ins = inset(r, row);
-            } else if (row >= h - r) {
-                ins = inset(r, h - 1 - row);
+        if (w <= 1 || h <= 1) {
+            return;
+        }
+        int gs = begin(g, x, y);
+        int t = gs;
+        int pw = w * gs;
+        int ph = h * gs;
+        int pr = Math.max(0, Math.min(r * gs, Math.min(pw, ph) / 2));
+        int ir = Math.max(0, pr - t);
+        int iw = pw - 2 * t;
+        int ih = ph - 2 * t;
+        for (int row = 0; row < ph; row++) {
+            if (row >= pr && row < ph - pr) {
+                continue; // straight part handled below
             }
-            if (row == 0 || row == h - 1) {
-                g.fill(x + ins, y + row, x + w - ins, y + row + 1, color);
+            double a0 = inset(pr, ph, row);
+            if (row < t || row >= ph - t) {
+                span(g, row, a0, pw - a0, color);
             } else {
-                g.fill(x + ins, y + row, x + ins + 1, y + row + 1, color);
-                g.fill(x + w - ins - 1, y + row, x + w - ins, y + row + 1, color);
+                double ai = t + inset(ir, ih, row - t);
+                span(g, row, a0, ai, color);
+                span(g, row, pw - ai, pw - a0, color);
             }
         }
+        if (ph - 2 * pr > 0) {
+            g.fill(0, pr, t, ph - pr, color);
+            g.fill(pw - t, pr, pw, ph - pr, color);
+        }
+        end(g);
     }
 
     public static void shadow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r) {
@@ -92,9 +200,9 @@ public final class Ui {
     }
 
     public static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        shadow(g, x, y, w, h, 5);
-        roundGradient(g, x, y, w, h, 5, PANEL_TOP, PANEL_BOT);
-        roundOutline(g, x, y, w, h, 5, BORDER);
+        shadow(g, x, y, w, h, 6);
+        roundGradient(g, x, y, w, h, 6, PANEL_TOP, PANEL_BOT);
+        roundOutline(g, x, y, w, h, 6, BORDER);
     }
 
     public static void hBar(GuiGraphicsExtractor g, int x, int y, int w, int h, int left, int right) {
@@ -106,7 +214,159 @@ public final class Ui {
 
     /** Dark rounded card used by the HUD panels (diamonds, effects). */
     public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        roundFill(g, x, y, w, h, 6, 0xE6101115);
-        roundOutline(g, x, y, w, h, 6, 0xFF26272E);
+        roundFill(g, x, y, w, h, 7, 0xE6101115);
+        roundOutline(g, x, y, w, h, 7, 0xFF26272E);
+    }
+
+    public static void circle(GuiGraphicsExtractor g, int x, int y, int d, int color) {
+        roundFill(g, x, y, d, d, d / 2, color);
+    }
+
+    public static void ring(GuiGraphicsExtractor g, int x, int y, int d, int color) {
+        roundOutline(g, x, y, d, d, d / 2, color);
+    }
+
+    /** Filled diamond (rotated square) inside a size x size box. */
+    public static void diamond(GuiGraphicsExtractor g, int x, int y, int size, int color) {
+        int gs = begin(g, x, y);
+        int ps = size * gs;
+        double half = ps / 2.0;
+        for (int row = 0; row < ps; row++) {
+            double hw = half * (1.0 - Math.abs(row + 0.5 - half) / half);
+            span(g, row, half - hw, half + hw, color);
+        }
+        end(g);
+    }
+
+    /** Filled triangle pointing down (w x h box). */
+    public static void triangleDown(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        int gs = begin(g, x, y);
+        int pw = w * gs;
+        int ph = h * gs;
+        for (int row = 0; row < ph; row++) {
+            double hw = pw / 2.0 * (1.0 - (row + 0.5) / ph);
+            span(g, row, pw / 2.0 - hw, pw / 2.0 + hw, color);
+        }
+        end(g);
+    }
+
+    /** Filled triangle pointing right (w x h box). */
+    public static void triangleRight(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        int gs = begin(g, x, y);
+        int pw = w * gs;
+        int ph = h * gs;
+        double half = ph / 2.0;
+        for (int row = 0; row < ph; row++) {
+            double len = pw * (1.0 - Math.abs(row + 0.5 - half) / half);
+            span(g, row, 0, len, color);
+        }
+        end(g);
+    }
+
+    // ------------------------------------------------------------------ text (Inter via font providers)
+
+    private static Style uiStyle;
+    private static Style titleStyle;
+    private static boolean styleInit;
+    private static Method textMethod;
+    private static boolean textFailed;
+
+    private static Style fontStyle(String path) {
+        try {
+            Identifier id = Identifier.fromNamespaceAndPath(CocoVisClient.MOD_ID, path);
+            for (Method m : Style.class.getMethods()) {
+                if (!m.getName().equals("withFont") || m.getParameterCount() != 1) {
+                    continue;
+                }
+                Class<?> p = m.getParameterTypes()[0];
+                Object arg;
+                if (p.isAssignableFrom(Identifier.class)) {
+                    arg = id;
+                } else {
+                    try {
+                        Class<?> res = Class.forName("net.minecraft.network.chat.FontDescription$Resource");
+                        arg = res.getConstructor(Identifier.class).newInstance(id);
+                    } catch (Throwable t) {
+                        continue;
+                    }
+                    if (!p.isInstance(arg)) {
+                        continue;
+                    }
+                }
+                return (Style) m.invoke(Style.EMPTY, arg);
+            }
+        } catch (Throwable t) {
+            CocoVisClient.LOGGER.warn("CocoVis UI font could not be applied: {}", String.valueOf(t));
+        }
+        return null;
+    }
+
+    private static void initText() {
+        if (styleInit) {
+            return;
+        }
+        styleInit = true;
+        uiStyle = fontStyle("ui");
+        titleStyle = fontStyle("title");
+        try {
+            for (Method m : GuiGraphicsExtractor.class.getMethods()) {
+                Class<?>[] p = m.getParameterTypes();
+                if (m.getName().equals("text") && p.length == 6 && p[1] == Component.class
+                        && p[2] == int.class && p[5] == boolean.class) {
+                    textMethod = m;
+                    break;
+                }
+            }
+        } catch (Throwable t) {
+            textFailed = true;
+        }
+        if (textMethod == null || uiStyle == null) {
+            textFailed = true;
+            CocoVisClient.LOGGER.warn("CocoVis falls back to the vanilla font (custom font style unavailable)");
+        }
+    }
+
+    private static Component styled(String s, boolean title) {
+        Style st = title && titleStyle != null ? titleStyle : uiStyle;
+        return Component.literal(s).withStyle(st);
+    }
+
+    /** Draws text with the UI font. Shadows are dropped for a flat look when the custom font works. */
+    public static void text(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color, boolean shadow) {
+        draw(g, font, s, x, y, color, shadow, false);
+    }
+
+    /** Semi-bold variant for titles. */
+    public static void title(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color) {
+        draw(g, font, s, x, y, color, false, true);
+    }
+
+    private static void draw(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color, boolean shadow, boolean title) {
+        initText();
+        if (!textFailed) {
+            try {
+                textMethod.invoke(g, font, styled(s, title), x, y, color, false);
+                return;
+            } catch (Throwable t) {
+                textFailed = true;
+            }
+        }
+        g.text(font, s, x, y, color, shadow);
+    }
+
+    public static int width(Font font, String s) {
+        initText();
+        if (!textFailed) {
+            return font.width(styled(s, false));
+        }
+        return font.width(s);
+    }
+
+    public static int titleWidth(Font font, String s) {
+        initText();
+        if (!textFailed) {
+            return font.width(styled(s, true));
+        }
+        return font.width(s);
     }
 }
