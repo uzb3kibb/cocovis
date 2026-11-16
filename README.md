@@ -1,13 +1,20 @@
-# CocoVis 0.0.1 — Ultra Overhaul
+# CocoVis 0.0.1 — Reference UI Update
 
-Клиентский Fabric-мод для Minecraft 26.3 (Java 25).
+Client-side Fabric mod for Minecraft 26.3.
 
 ## UI changes
-- Переработан экран Visuals: увеличенная адаптивная панель, отдельная навигация Workspace, статус модулей и более выразительная иерархия.
-- Новые крупные карточки модулей, отдельные зоны иконок, более заметные переключатели и состояния hover/active.
-- Обновлённая тёмная палитра с фиолетово-синими акцентами и более глубокими панелями.
-- Существующие обработчики включения модулей и перехода в настройки сохранены.
+- Reworked Visuals screen toward the supplied references: graphite/near-black surfaces, blue active state, restrained borders and compact toggles.
+- Sidebar category navigation with module counts.
+- Search field filters the selected category by module name and description.
+- Two-column feature layout with per-module settings actions.
+- Updated shared UI palette and the draggable info HUD panel.
+- Existing module behaviour and configuration remain wired to the original ModuleManager.
 
 ## Build
-GitHub Actions запускает `gradle build --no-daemon` при push или вручную через Actions → Build.
-Требуется JDK 25. Готовый JAR появится в `build/libs/`, а workflow загрузит его в Artifacts.
+Requires JDK 25. The repository GitHub Actions workflow builds with Gradle and uploads the JAR artifact.
+
+```bash
+gradle build --no-daemon
+```
+
+The compiled JAR is written to `build/libs/`.

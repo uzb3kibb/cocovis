@@ -4,22 +4,22 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** Small drawing helpers: dark rounded panels, gradients, colors. */
 public final class Ui {
-    public static final int ACCENT = 0xFFB58CFF;
-    public static final int ACCENT2 = 0xFF6C8DFF;
-    public static final int TEXT = 0xFFF2F0FA;
-    public static final int MUTED = 0xFFAAA5B8;
-    public static final int DIM = 0xFF696477;
-    public static final int GOOD = 0xFF72E6B1;
+    public static final int ACCENT = 0xFF7CA8FF;
+    public static final int ACCENT2 = 0xFF9ABEFF;
+    public static final int TEXT = 0xFFE8EDF5;
+    public static final int MUTED = 0xFF8994A4;
+    public static final int DIM = 0xFF596575;
+    public static final int GOOD = 0xFF55D6A0;
     public static final int BAD = 0xFFE8606E;
-    public static final int BG_TOP = 0xF2141020;
-    public static final int BG_BOT = 0xF20C0A14;
-    public static final int PANEL_TOP = 0xF0191622;
-    public static final int PANEL_BOT = 0xF0100E18;
-    public static final int CARD_TOP = 0xFF211D2B;
-    public static final int CARD_BOT = 0xFF191622;
-    public static final int CARD_HOT_TOP = 0xFF30283D;
-    public static final int CARD_HOT_BOT = 0xFF211D2B;
-    public static final int BORDER = 0xFF393147;
+    public static final int BG_TOP = 0xF20D1118;
+    public static final int BG_BOT = 0xF2080B10;
+    public static final int PANEL_TOP = 0xF2131821;
+    public static final int PANEL_BOT = 0xF20E1219;
+    public static final int CARD_TOP = 0xFF141820;
+    public static final int CARD_BOT = 0xFF10141A;
+    public static final int CARD_HOT_TOP = 0xFF1B222D;
+    public static final int CARD_HOT_BOT = 0xFF141820;
+    public static final int BORDER = 0xFF252D38;
 
     private Ui() {}
 

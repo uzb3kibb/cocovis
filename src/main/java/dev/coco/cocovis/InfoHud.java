@@ -63,8 +63,12 @@ public final class InfoHud {
         g.pose().pushMatrix();
         g.pose().translate((float) cfg.infoX, (float) cfg.infoY);
         g.pose().scale(s, s);
-        Ui.panel(g, 0, 0, w, h);
-        g.fill(1, 4, 3, h - 4, Ui.ACCENT);
+        Ui.roundGradient(g, 0, 0, w, h, 6, 0xF2181D27, 0xF20D1118);
+        Ui.roundOutline(g, 0, 0, w, h, 6, 0xFF293443);
+        g.fill(1, 5, 3, h - 5, Ui.ACCENT);
+        if (lines.size() > 1) {
+            g.fill(8, 5 + 10, w - 8, 5 + 10 + 1, 0xFF26303D);
+        }
         for (int i = 0; i < lines.size(); i++) {
             int color = i == 0 && (cfg.showWatermark || preview) ? Ui.ACCENT : Ui.TEXT;
             g.text(font, lines.get(i), 9, 5 + i * 11, color, true);
