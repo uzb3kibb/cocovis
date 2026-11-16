@@ -215,7 +215,7 @@ public class VisualsScreen extends Screen {
             int tile = enabled ? 0xFF302440 : 0xFF292631;
             Ui.roundFill(g, cX + 8, cy + 9, 34, 34, 7, tile);
             if (enabled) Ui.roundFill(g, cX + 8, cy + 9, 2, 34, 1, Ui.ACCENT);
-            g.item(icon(module.icon()), cX + 17, cy + 17);
+            g.item(icon(module.icon), cX + 17, cy + 17);
 
             int tx = cX + cW - TOG_W - 12;
             int ty = cy + (ROW_H - TOG_H) / 2;
