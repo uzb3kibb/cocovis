@@ -55,7 +55,7 @@ public final class EffectsHud {
             MobEffect eff = inst.getEffect().value();
             String id = String.valueOf(BuiltInRegistries.MOB_EFFECT.getKey(eff));
             list.add(new Entry(id, eff.getDisplayName().getString(), inst.getAmplifier(),
-                    inst.getDuration(), inst.isInfinite(), eff.getColor()));
+                    inst.getDuration(), inst.getDuration() < 0, eff.getColor()));
         }
         list.sort(Comparator.comparing(Entry::id));
         return list;
