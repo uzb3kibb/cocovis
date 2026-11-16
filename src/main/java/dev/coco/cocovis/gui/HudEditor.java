@@ -172,9 +172,9 @@ public class HudEditor extends Screen {
         DiamondHud.drawToastPreview(g, mc);
 
         int hover = dragging ? target : panelAt(mX, mY);
-        outline(g, font, "Инфо-панель", InfoHud.boundsX, InfoHud.boundsY, InfoHud.boundsW, InfoHud.boundsH, hover == INFO);
+        outline(g, font, "Информация", InfoHud.boundsX, InfoHud.boundsY, InfoHud.boundsW, InfoHud.boundsH, hover == INFO);
         outline(g, font, "Алмазы", DiamondHud.boundsX, DiamondHud.boundsY, DiamondHud.boundsW, DiamondHud.boundsH, hover == DIAMOND);
-        outline(g, font, "Уведомление", DiamondHud.toastBX, DiamondHud.toastBY, DiamondHud.toastBW, DiamondHud.toastBH, hover == TOAST);
+        outline(g, font, "Уведомления", DiamondHud.toastBX, DiamondHud.toastBY, DiamondHud.toastBW, DiamondHud.toastBH, hover == TOAST);
 
         button(g, font, "Сбросить", resetX(), btnY(), Ui.inside(mX, mY, resetX(), btnY(), BTN_W, BTN_H));
         button(g, font, "Готово", doneX(), btnY(), Ui.inside(mX, mY, doneX(), btnY(), BTN_W, BTN_H));
