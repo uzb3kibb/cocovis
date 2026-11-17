@@ -1,4 +1,4 @@
-# CocoVis 0.0.3 — Smooth UI Update
+# CocoVis 0.0.4 — Compact UI Update
 
 Client-side Fabric mod for Minecraft 26.3.
 

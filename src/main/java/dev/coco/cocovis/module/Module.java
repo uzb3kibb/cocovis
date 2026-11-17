@@ -1,32 +1,29 @@
 package dev.coco.cocovis.module;
 
-import net.minecraft.world.item.Item;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class Module {
     public final String name;
-    public final Item icon;
     private final String description;
     private final BooleanSupplier state;
     private final Consumer<Boolean> setter;
     private Supplier<String> descriptionSupplier;
-    public Runnable settings;
-    public String settingsLabel = "Настроить";
+    /** Options shown in the drawer under the module row. */
+    public final List<Setting> options = new ArrayList<>();
 
-    public Module(String name, String description, Item icon, BooleanSupplier state, Consumer<Boolean> setter) {
+    public Module(String name, String description, BooleanSupplier state, Consumer<Boolean> setter) {
         this.name = name;
         this.description = description;
-        this.icon = icon;
         this.state = state;
         this.setter = setter;
     }
 
-    public Module withSettings(String label, Runnable action) {
-        this.settingsLabel = label;
-        this.settings = action;
+    public Module with(Setting option) {
+        options.add(option);
         return this;
     }
 

@@ -58,6 +58,10 @@ public final class CocoVisConfig {
     public int infoY = 6;
     public float infoScale = 1.0f;
     public boolean showWatermark = true;
+    /** Master switch of the info panel (logo is always part of it). */
+    public boolean showInfo = true;
+    /** 0 = separate pills, 1 = one slab, 2 = vertical slab. */
+    public int infoStyle = 1;
     public boolean showNick = true;
     public boolean showFps = true;
     public boolean showPing = true;

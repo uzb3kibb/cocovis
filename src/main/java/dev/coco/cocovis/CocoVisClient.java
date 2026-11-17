@@ -63,6 +63,6 @@ public class CocoVisClient implements ClientModInitializer {
 
         ItemTooltipCallback.EVENT.register(PriceTooltip::onTooltip);
 
-        LOGGER.info("CocoVis 0.0.3 loaded");
+        LOGGER.info("CocoVis 0.0.4 loaded");
     }
 }
