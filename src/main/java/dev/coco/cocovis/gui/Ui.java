@@ -8,6 +8,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
+import java.awt.Color;
+
 import java.lang.reflect.Method;
 
 /**
@@ -266,6 +268,35 @@ public final class Ui {
 
     public static void fastRing(GuiGraphicsExtractor g, float x, float y, float d, int color) {
         fastRoundOutline(g, x, y, d, d, d / 2f, color);
+    }
+
+    /**
+     * Draws an HSV saturation/value disk with physical-pixel columns. A fixed-hue,
+     * fixed-saturation vertical slice is linear in RGB, so each column needs one gradient.
+     */
+    public static void svColorDisk(GuiGraphicsExtractor g, float cx, float cy, float radius, float hue) {
+        if (radius <= 0f) return;
+        int gs = begin(g, cx - radius, cy - radius);
+        int pr = Math.max(1, Math.round(radius * gs));
+        for (int px = -pr; px <= pr; px++) {
+            double nx = (px + 0.5) / pr;
+            if (Math.abs(nx) > 1.0) continue;
+            int half = (int) Math.floor(Math.sqrt(Math.max(0.0, 1.0 - nx * nx)) * pr);
+            float saturation = Math.max(0f, Math.min(1f, (px + 0.5f) / (2f * pr) + 0.5f));
+            float topValue = Math.max(0f, Math.min(1f, 0.5f + half / (2f * pr)));
+            float bottomValue = Math.max(0f, Math.min(1f, 0.5f - half / (2f * pr)));
+            int top = Color.HSBtoRGB(hue, saturation, topValue);
+            int bottom = Color.HSBtoRGB(hue, saturation, bottomValue);
+            int x = pr + px;
+            int y1 = pr - half;
+            int y2 = pr + half + 1;
+            if (y2 <= y1 + 1) {
+                g.fill(x, y1, x + 1, y2, top);
+            } else {
+                g.fillGradient(x, y1, x + 1, y2, top, bottom);
+            }
+        }
+        end(g);
     }
 
     public static void panel(GuiGraphicsExtractor g, float x, float y, float w, float h) {
