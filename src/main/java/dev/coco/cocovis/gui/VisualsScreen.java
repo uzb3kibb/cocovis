@@ -313,10 +313,12 @@ public class VisualsScreen extends Screen {
         scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
         scroll = smooth(scroll, scrollTarget, dt, 16f);
 
+        // Build the cell layout once for this frame and reuse it for dragging and drawing.
+        List<Cell> frameCells = cells();
+
         // slider drag: follows the mouse while the button is held (released in mouseReleased)
         if (dragging != null) {
-            float trackX = contentX + 0f;
-            for (Cell c : cells()) {
+            for (Cell c : frameCells) {
                 if (c.type() == 2 && c.setting() == dragging) {
                     float tx = c.x() + 14;
                     float tw = c.w() - 28;
@@ -400,15 +402,15 @@ public class VisualsScreen extends Screen {
         }
 
         // ---------- columns ----------
-        cells();
         scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
-        List<Cell> cells = cells();
+        scroll = smooth(scroll, scrollTarget, dt, 16f);
+        frameCells = cells();
 
         float colW = (contentW - COL_GAP) / 2f;
         g.enableScissor(contentX - 2, Math.round(listTop), contentX + contentW + 2, Math.round(listBottom));
         Ui.rect(g, contentX + colW + COL_GAP / 2f, listTop, 1, listBottom - listTop, DIVIDER);
         Module hovered = null;
-        for (Cell cell : cells) {
+        for (Cell cell : frameCells) {
             if (cell.y() + cell.h() < listTop || cell.y() > listBottom) {
                 continue;
             }
