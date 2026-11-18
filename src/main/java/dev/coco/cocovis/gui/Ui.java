@@ -271,6 +271,32 @@ public final class Ui {
     }
 
     /**
+     * Draws the HSV saturation/value disk at GUI resolution. Each vertical slice is
+     * a single RGB gradient, keeping the per-frame work bounded by the visible diameter.
+     * No outline is drawn; the clipped fill itself defines the circular edge.
+     */
+    public static void fastSvColorDisk(GuiGraphicsExtractor g, float cx, float cy, float radius, float hue) {
+        if (radius <= 0f) return;
+        int r = Math.max(1, Math.round(radius));
+        int centerX = Math.round(cx), centerY = Math.round(cy);
+        for (int px = -r; px <= r; px++) {
+            float nx = px / (float) r;
+            if (Math.abs(nx) > 1f) continue;
+            int half = (int) Math.floor(Math.sqrt(Math.max(0f, 1f - nx * nx)) * r);
+            float saturation = Math.max(0f, Math.min(1f, px / (2f * radius) + 0.5f));
+            float topValue = Math.max(0f, Math.min(1f, 0.5f + half / (2f * radius)));
+            float bottomValue = Math.max(0f, Math.min(1f, 0.5f - half / (2f * radius)));
+            int top = Color.HSBtoRGB(hue, saturation, topValue);
+            int bottom = Color.HSBtoRGB(hue, saturation, bottomValue);
+            int x = centerX + px;
+            int y1 = centerY - half;
+            int y2 = centerY + half + 1;
+            if (y2 <= y1 + 1) g.fill(x, y1, x + 1, y2, top);
+            else g.fillGradient(x, y1, x + 1, y2, top, bottom);
+        }
+    }
+
+    /**
      * Draws an HSV saturation/value disk with physical-pixel columns. A fixed-hue,
      * fixed-saturation vertical slice is linear in RGB, so each column needs one gradient.
      */
