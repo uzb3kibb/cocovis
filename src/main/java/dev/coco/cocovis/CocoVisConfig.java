@@ -115,7 +115,7 @@ public final class CocoVisConfig {
             }
             // Use Minecraft's platform abstraction instead of AWT Desktop,
             // which may be unavailable in a game runtime.
-            Util.getPlatform().openFile(p.toFile());
+            Util.getPlatform().openPath(p);
         } catch (Exception e) {
             CocoVisClient.LOGGER.error("Could not open cocovis.json at {}", p, e);
         }
