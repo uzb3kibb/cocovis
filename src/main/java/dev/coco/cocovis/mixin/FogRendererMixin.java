@@ -2,7 +2,10 @@ package dev.coco.cocovis.mixin;
 
 import dev.coco.cocovis.CocoVisConfig;
 import dev.coco.cocovis.SkyState;
+import net.minecraft.client.Camera;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.fog.FogRenderer;
+import net.minecraft.world.level.material.FogType;
 import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,20 +16,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(FogRenderer.class)
 public abstract class FogRendererMixin {
     @Inject(
-            method = "computeFogColor",
+            method = "computeFogColor(Lnet/minecraft/client/Camera;FLnet/minecraft/client/multiplayer/ClientLevel;IFLorg/joml/Vector4f;)V",
             at = @At("TAIL"),
             require = 0
     )
     private void cocovis$tintAtmosphericHorizon(
-            net.minecraft.client.Camera camera,
+            Camera camera,
             float partialTicks,
-            net.minecraft.client.multiplayer.ClientLevel level,
+            ClientLevel level,
             int renderDistance,
             float darkenWorldAmount,
             Vector4f fogColor,
             CallbackInfo ci
     ) {
-        if (!SkyState.colorActive() || camera.getFluidInCamera() != net.minecraft.world.level.material.FogType.NONE) {
+        if (!SkyState.colorActive() || camera.getFluidInCamera() != FogType.NONE) {
             return;
         }
 
