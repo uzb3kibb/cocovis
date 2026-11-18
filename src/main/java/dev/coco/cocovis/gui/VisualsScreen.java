@@ -826,10 +826,6 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (skyHexFocused && event.hasControlDown() && event.key() == 65) {
-            skyHex = "";
-            return true;
-        }
         if (skyHexFocused && event.key() == 259 && !skyHex.isEmpty()) {
             skyHex = skyHex.substring(0, skyHex.length() - 1);
             applySkyHex();
