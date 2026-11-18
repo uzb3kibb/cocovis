@@ -1,5 +1,7 @@
 package dev.coco.cocovis;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import java.time.LocalTime;
 
 /** Client-side time of day used by the clock mixin. */
@@ -7,7 +9,9 @@ public final class SkyState {
     private SkyState() {}
 
     public static boolean active() {
-        return CocoVisConfig.get().skyEnabled;
+        // Cirrus owns the client sky clock when installed. Avoid competing clock overrides.
+        return !FabricLoader.getInstance().isModLoaded("cirrus")
+                && CocoVisConfig.get().skyEnabled;
     }
 
     /** Ticks of the day: 0 = dawn, 6000 = noon, 12000 = sunset, 18000 = midnight. */
