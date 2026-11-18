@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 
-import java.awt.Desktop;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -108,18 +107,25 @@ public final class CocoVisConfig {
     }
 
     public static void openConfig() {
+        Path p = path();
         try {
-            Path p = path();
             if (!Files.exists(p)) {
                 save();
             }
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(p.toFile());
+            // Launch the operating system's file handler without relying on
+            // Minecraft-version-specific platform APIs or AWT Desktop.
+            String os = System.getProperty("os.name", "").toLowerCase();
+            ProcessBuilder opener;
+            if (os.contains("win")) {
+                opener = new ProcessBuilder("cmd", "/c", "start", "", p.toAbsolutePath().toString());
+            } else if (os.contains("mac")) {
+                opener = new ProcessBuilder("open", p.toAbsolutePath().toString());
             } else {
-                CocoVisClient.LOGGER.warn("Desktop integration is unavailable; edit {}", p);
+                opener = new ProcessBuilder("xdg-open", p.toAbsolutePath().toString());
             }
-        } catch (IOException e) {
-            CocoVisClient.LOGGER.warn("Could not open cocovis.json", e);
+            opener.start();
+        } catch (Exception e) {
+            CocoVisClient.LOGGER.error("Could not open cocovis.json at {}", p, e);
         }
     }
 
