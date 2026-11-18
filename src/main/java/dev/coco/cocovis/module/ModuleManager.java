@@ -3,7 +3,6 @@ package dev.coco.cocovis.module;
 import dev.coco.cocovis.CocoVisConfig;
 import dev.coco.cocovis.MotionBlurBridge;
 import dev.coco.cocovis.gui.HudEditor;
-import dev.coco.cocovis.gui.SkyColorPickerScreen;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
@@ -111,8 +110,7 @@ public final class ModuleManager {
                     () -> CocoVisConfig.get().skyColorIntensity, v -> {
                         CocoVisConfig.get().skyColorIntensity = v;
                         CocoVisConfig.save();
-                    }))
-            .with(Setting.action("Выбрать цвет", () -> Minecraft.getInstance().gui.setScreen(new SkyColorPickerScreen())));
+                    }));
 
     // ---------------- Графика ----------------
     public static final Module MOTION_BLUR = new Module("Размытие движения",
