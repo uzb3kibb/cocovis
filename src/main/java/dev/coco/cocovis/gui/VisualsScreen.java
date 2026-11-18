@@ -495,6 +495,14 @@ public class VisualsScreen extends Screen {
         // ---------- columns ----------
         List<Cell> cells = cells();
         scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
+        if (dragging != null) {
+            for (Cell c : cells) {
+                if (c.type() == 2 && c.setting() == dragging) {
+                    dragging.setFraction((mX - (c.x() + 14)) / (c.w() - 28));
+                    break;
+                }
+            }
+        }
 
         float colW = (contentW - COL_GAP) / 2f;
         g.enableScissor(contentX - 2, Math.round(listTop), contentX + contentW + 2, Math.round(listBottom));
