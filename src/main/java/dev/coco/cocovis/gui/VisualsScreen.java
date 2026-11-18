@@ -15,6 +15,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,6 +89,11 @@ public class VisualsScreen extends Screen {
     private float navSelY = -1000f;
     private float contentHeight;
     private Setting dragging;
+    private boolean skyWheelDragging;
+    private boolean skyHexFocused;
+    private String skyHex = "7B2CFF";
+    private float skyWheelX, skyWheelY, skyWheelR;
+
     private final Map<Module, Float> toggleAnim = new HashMap<>();
     private final Map<Module, Float> hoverAnim = new HashMap<>();
     private final Map<Module, Float> openAnim = new HashMap<>();
@@ -100,6 +106,8 @@ public class VisualsScreen extends Screen {
 
     public VisualsScreen() {
         super(Component.literal("CocoVis"));
+        String saved = CocoVisConfig.get().skyColorHex;
+        if (saved != null) skyHex = saved.replace("#", "").toUpperCase(Locale.ROOT);
     }
 
     /** Frame-rate independent exponential smoothing. */
@@ -271,6 +279,102 @@ public class VisualsScreen extends Screen {
         return cells;
     }
 
+
+    private boolean skyPickerVisible() {
+        return catIndex == 2 && search.isEmpty();
+    }
+
+    private void applySkyHex() {
+        if (skyHex.matches("[0-9A-Fa-f]{6}")) {
+            CocoVisConfig cfg = CocoVisConfig.get();
+            cfg.skyColorHex = "#" + skyHex.toUpperCase(Locale.ROOT);
+            cfg.skyColorMode = 5;
+            cfg.skyColorEnabled = true;
+            CocoVisConfig.save();
+        }
+    }
+
+    private void updateSkyWheel(double mx, double my) {
+        double dx = mx - skyWheelX, dy = my - skyWheelY;
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > skyWheelR || distance < 5) return;
+        float hue = (float) ((Math.atan2(dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
+        float saturation = (float) Math.max(0.12, Math.min(1.0, distance / skyWheelR));
+        int rgb = Color.HSBtoRGB(hue, saturation, 1f) & 0xFFFFFF;
+        skyHex = String.format(Locale.ROOT, "%06X", rgb);
+        applySkyHex();
+    }
+
+    private void drawSkyPicker(GuiGraphicsExtractor g, Font font) {
+        float left = contentX + (contentW + COL_GAP) / 2f;
+        float right = contentX + contentW;
+        float panelW = right - left;
+        float cx = left + panelW / 2f;
+        float cy = listTop + 100f;
+        skyWheelX = cx;
+        skyWheelY = cy;
+        skyWheelR = Math.min(53f, panelW * 0.34f);
+
+        Ui.roundFill(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, DRAWER);
+        Ui.roundOutline(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, FIELD_LINE);
+        Ui.title(g, font, "Цвет неба", left + 14, listTop + 17, TEXT);
+        Ui.text(g, font, "Выбор оттенка", left + 14, listTop + 34, MUTED, false);
+
+        // Lightweight cached-shape approximation: 4 concentric rings x 36 hue samples.
+        // Avoids the old per-pixel wheel that issued thousands of draw calls every frame.
+        for (int ring = 0; ring < 4; ring++) {
+            float radius = skyWheelR * (0.38f + ring * 0.19f);
+            float sat = (ring + 1) / 4f;
+            for (int i = 0; i < 36; i++) {
+                float hue = i / 36f;
+                double a = hue * Math.PI * 2.0;
+                float px = cx + (float) Math.cos(a) * radius - 4f;
+                float py = cy + (float) Math.sin(a) * radius - 4f;
+                int rgb = Color.HSBtoRGB(hue, sat, 1f);
+                Ui.roundFill(g, px, py, 8, 8, 2, 0xFF000000 | (rgb & 0xFFFFFF));
+            }
+        }
+        int current = 0x7B2CFF;
+        try { current = Integer.parseInt(skyHex, 16); } catch (RuntimeException ignored) {}
+        Ui.circle(g, cx - 13, cy - 13, 26, 0xFF111318);
+        Ui.circle(g, cx - 9, cy - 9, 18, 0xFF000000 | current);
+        Ui.ring(g, cx - 13, cy - 13, 26, 0xFF737B8B);
+
+        float markerRadius = skyWheelR * 0.76f;
+        float hue = 0f;
+        try {
+            int c = Integer.parseInt(skyHex, 16);
+            hue = Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null)[0];
+        } catch (RuntimeException ignored) {}
+        double angle = hue * Math.PI * 2.0;
+        float mx = cx + (float) Math.cos(angle) * markerRadius;
+        float my = cy + (float) Math.sin(angle) * markerRadius;
+        Ui.circle(g, mx - 5, my - 5, 10, 0xFF111318);
+        Ui.ring(g, mx - 5, my - 5, 10, 0xFFFFFFFF);
+
+        float fieldY = cy + skyWheelR + 20;
+        float fieldX = left + 14;
+        float fieldW = panelW - 28;
+        Ui.text(g, font, "HEX", fieldX, fieldY + 9, MUTED, false);
+        float inputX = fieldX + 34;
+        float inputW = fieldW - 34;
+        Ui.roundFill(g, inputX, fieldY, inputW, 24, 5, FIELD);
+        Ui.roundOutline(g, inputX, fieldY, inputW, 24, 5, skyHexFocused ? BLUE : FIELD_LINE);
+        Ui.text(g, font, "#" + skyHex, inputX + 8, fieldY + 8, TEXT, false);
+        if (skyPickerVisible()) {
+            Ui.text(g, font, "Цвет применяется сразу", fieldX, fieldY + 34, MUTED, false);
+        }
+    }
+
+    private boolean skyHexFieldAt(double mx, double my) {
+        float left = contentX + (contentW + COL_GAP) / 2f;
+        float panelW = contentX + contentW - left;
+        float cy = listTop + 100f;
+        float r = Math.min(53f, panelW * 0.34f);
+        float fieldY = cy + r + 20;
+        return Ui.inside((int) mx, (int) my, left + 48, fieldY, panelW - 62, 24);
+    }
+
     private float maxScroll() {
         return Math.max(0f, contentHeight - Math.max(1f, listBottom - listTop));
     }
@@ -313,18 +417,7 @@ public class VisualsScreen extends Screen {
         scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
         scroll = smooth(scroll, scrollTarget, dt, 16f);
 
-        // slider drag: follows the mouse while the button is held (released in mouseReleased)
-        if (dragging != null) {
-            float trackX = contentX + 0f;
-            for (Cell c : cells()) {
-                if (c.type() == 2 && c.setting() == dragging) {
-                    float tx = c.x() + 14;
-                    float tw = c.w() - 28;
-                    dragging.setFraction((mX - tx) / tw);
-                    break;
-                }
-            }
-        }
+        if (skyWheelDragging) updateSkyWheel(mX, mY);
 
         g.fill(0, 0, sw, sh, Ui.fade(0xFF000000, 0.55f * e));
 
@@ -400,9 +493,16 @@ public class VisualsScreen extends Screen {
         }
 
         // ---------- columns ----------
-        cells();
-        scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
         List<Cell> cells = cells();
+        scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
+        if (dragging != null) {
+            for (Cell c : cells) {
+                if (c.type() == 2 && c.setting() == dragging) {
+                    dragging.setFraction((mX - (c.x() + 14)) / (c.w() - 28));
+                    break;
+                }
+            }
+        }
 
         float colW = (contentW - COL_GAP) / 2f;
         g.enableScissor(contentX - 2, Math.round(listTop), contentX + contentW + 2, Math.round(listBottom));
@@ -428,6 +528,8 @@ public class VisualsScreen extends Screen {
             }
         }
         g.disableScissor();
+
+        if (skyPickerVisible()) drawSkyPicker(g, font);
 
         float max = maxScroll();
         if (max > 0.5f) {
@@ -591,6 +693,20 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (skyPickerVisible()) {
+            float dx = mX - skyWheelX, dy = mY - skyWheelY;
+            if (dx * dx + dy * dy <= skyWheelR * skyWheelR && dx * dx + dy * dy >= 25) {
+                skyWheelDragging = true;
+                skyHexFocused = false;
+                updateSkyWheel(mX, mY);
+                return true;
+            }
+            if (skyHexFieldAt(mX, mY)) {
+                skyHexFocused = true;
+                return true;
+            }
+            skyHexFocused = false;
+        }
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
             if (Ui.inside(mX, mY, x0 + 7, navTop() + i * (NAV_H + NAV_GAP), sbW - 14, NAV_H)) {
                 catIndex = i;
@@ -651,6 +767,7 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (skyWheelDragging) { skyWheelDragging = false; return true; }
         if (dragging != null) {
             dragging = null;
             return true;
@@ -660,6 +777,15 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
+        if (skyHexFocused && event.isAllowedChatCharacter()) {
+            String typedHex = event.codepointAsString().toUpperCase(Locale.ROOT);
+            if (typedHex.matches("[0-9A-F]") && skyHex.length() < 6) {
+                skyHex += typedHex;
+                applySkyHex();
+                return true;
+            }
+            return false;
+        }
         String typed = event.codepointAsString();
         if (searchFocused && event.isAllowedChatCharacter()) {
             search += typed;
@@ -672,6 +798,11 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (skyHexFocused && event.key() == 259 && !skyHex.isEmpty()) {
+            skyHex = skyHex.substring(0, skyHex.length() - 1);
+            applySkyHex();
+            return true;
+        }
         if (event.key() == 256) {
             if (searchFocused) {
                 searchFocused = false;
