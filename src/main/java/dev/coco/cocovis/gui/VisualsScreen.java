@@ -302,6 +302,20 @@ public class VisualsScreen extends Screen {
         }
     }
 
+    // Convert screen mouse coordinates back through the menu's pop-in transform.
+    // The picker is drawn inside this transform, so hit testing must use the same space.
+    private double menuMouseX() {
+        float pop = 0.955f + 0.045f * easeOut(open);
+        float center = x0 + w / 2f;
+        return center + (mX - center) / pop;
+    }
+
+    private double menuMouseY() {
+        float pop = 0.955f + 0.045f * easeOut(open);
+        float center = y0 + h / 2f;
+        return center + (mY - center) / pop;
+    }
+
     private void updateSkyWheel(double mx, double my) {
         double dx = mx - skyWheelX, dy = my - skyWheelY;
         double distance = Math.sqrt(dx * dx + dy * dy);
@@ -441,7 +455,7 @@ public class VisualsScreen extends Screen {
         scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
         scroll = smooth(scroll, scrollTarget, dt, 16f);
 
-        if (skyWheelDragging) updateSkyWheel(mX, mY);
+        if (skyWheelDragging) updateSkyWheel(menuMouseX(), menuMouseY());
 
         g.fill(0, 0, sw, sh, Ui.fade(0xFF000000, 0.55f * e));
 
@@ -718,15 +732,16 @@ public class VisualsScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (skyPickerVisible()) {
-            float dx = mX - skyWheelX, dy = mY - skyWheelY;
+            double wheelMouseX = menuMouseX(), wheelMouseY = menuMouseY();
+            float dx = (float) wheelMouseX - skyWheelX, dy = (float) wheelMouseY - skyWheelY;
             double distance = Math.sqrt(dx * dx + dy * dy);
             if (distance <= skyWheelR && (distance <= skyWheelR * 0.64f || distance >= skyWheelR * 0.72f)) {
                 skyWheelDragging = true;
                 skyHexFocused = false;
-                updateSkyWheel(mX, mY);
+                updateSkyWheel(wheelMouseX, wheelMouseY);
                 return true;
             }
-            if (skyHexFieldAt(mX, mY)) {
+            if (skyHexFieldAt(wheelMouseX, wheelMouseY)) {
                 skyHexFocused = true;
                 return true;
             }
