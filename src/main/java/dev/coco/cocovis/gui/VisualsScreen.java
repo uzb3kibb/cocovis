@@ -366,23 +366,33 @@ public class VisualsScreen extends Screen {
         float hueMarkerX = skyHueBarX + hsv[0] * skyHueBarW;
         Ui.fastRoundOutline(g, hueMarkerX - 2, skyHueBarY - 2, 4, skyHueBarH + 4, 2, 0xFFFFFFFF);
 
-        // Circular saturation/value field. Horizontal position = saturation,
-        // vertical position = brightness, so the lower edge reaches true black.
-        // Draw at GUI-pixel resolution so the circular edge is not made of chunky 3px tiles.
-        // The picker is small (radius <= 42), keeping the per-frame fill count bounded.
-        for (int py = -(int) skyWheelR; py <= skyWheelR; py++) {
-            float ny = py / skyWheelR;
-            int half = (int) Math.floor(Math.sqrt(Math.max(0f, 1f - ny * ny)) * skyWheelR);
-            float value = clamp01(0.5f - py / (2f * skyWheelR));
-            int y = Math.round(cy + py);
-            for (int px = -half; px <= half; px++) {
-                float saturation = clamp01(px / (2f * skyWheelR) + 0.5f);
-                int color = 0xFF000000 | (Color.HSBtoRGB(hsv[0], saturation, value) & 0xFFFFFF);
-                int x = Math.round(cx + px);
-                g.fill(x, y, x + 1, y + 1, color);
+        // Circular saturation/value field.
+        // Render one vertical RGB gradient per GUI column instead of one fill per pixel.
+        // For a fixed hue/saturation, RGB scales linearly with value, so the two endpoint
+        // colors reproduce the exact HSV brightness ramp while reducing thousands of
+        // per-frame fill calls to roughly the disk diameter.
+        int diskRadius = Math.max(1, (int) Math.floor(skyWheelR));
+        int diskCenterX = Math.round(cx);
+        int diskCenterY = Math.round(cy);
+        for (int px = -diskRadius; px <= diskRadius; px++) {
+            float nx = px / (float) diskRadius;
+            int halfHeight = (int) Math.floor(Math.sqrt(Math.max(0f, 1f - nx * nx)) * diskRadius);
+            float saturation = clamp01(px / (2f * skyWheelR) + 0.5f);
+            float topValue = clamp01(0.5f + halfHeight / (2f * skyWheelR));
+            float bottomValue = clamp01(0.5f - halfHeight / (2f * skyWheelR));
+            int topColor = Color.HSBtoRGB(hsv[0], saturation, topValue);
+            int bottomColor = Color.HSBtoRGB(hsv[0], saturation, bottomValue);
+            int x = diskCenterX + px;
+            int topY = diskCenterY - halfHeight;
+            int bottomY = diskCenterY + halfHeight;
+            if (topY == bottomY) {
+                g.fill(x, topY, x + 1, bottomY + 1, topColor);
+            } else {
+                g.fillGradient(x, topY, x + 1, bottomY + 1, topColor, bottomColor);
             }
         }
-        Ui.fastRing(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
+        // Supersampled outline smooths the circular silhouette without rasterizing the fill.
+        Ui.ring(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
 
         float markerX = cx + (hsv[1] - 0.5f) * 2f * skyWheelR;
         float markerY = cy + (0.5f - hsv[2]) * 2f * skyWheelR;
