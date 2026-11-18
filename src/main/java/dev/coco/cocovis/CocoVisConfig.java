@@ -3,8 +3,8 @@ package dev.coco.cocovis;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.Util;
 
-import java.awt.Desktop;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -108,18 +108,16 @@ public final class CocoVisConfig {
     }
 
     public static void openConfig() {
+        Path p = path();
         try {
-            Path p = path();
             if (!Files.exists(p)) {
                 save();
             }
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(p.toFile());
-            } else {
-                CocoVisClient.LOGGER.warn("Desktop integration is unavailable; edit {}", p);
-            }
-        } catch (IOException e) {
-            CocoVisClient.LOGGER.warn("Could not open cocovis.json", e);
+            // Use Minecraft's platform abstraction instead of AWT Desktop,
+            // which may be unavailable in a game runtime.
+            Util.getPlatform().openFile(p.toFile());
+        } catch (Exception e) {
+            CocoVisClient.LOGGER.error("Could not open cocovis.json at {}", p, e);
         }
     }
 
