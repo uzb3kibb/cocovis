@@ -156,10 +156,6 @@ public final class SkyColorPickerScreen extends Screen {
         return true;
     }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, boolean ignored) {
-        extractRenderState(g, mouseX, mouseY, partialTick);
-    }
 
     @Override
     public boolean charTyped(CharacterEvent event) {
