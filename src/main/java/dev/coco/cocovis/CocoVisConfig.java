@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 
+import java.awt.Desktop;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,21 +18,14 @@ public final class CocoVisConfig {
 
     // ---- clan nametags ----
     public boolean clanNametags = true;
-    /**
-     * Regex applied to the player's TAB text (team prefix/suffix included). Group 1 = clan name.
-     *   [CLAN] Nick  ->  ^\[([^\]]+)\]      Nick | CLAN  ->  \|\s*(.+)$
-     *   Nick [CLAN]  ->  \[([^\]]+)\]\s*$   (CLAN) Nick  ->  ^\(([^)]+)\)
-     */
     public String clanPattern = "^\\[([^\\]]+)\\]";
     public boolean showEmblem = true;
     public boolean showAccent = true;
     public boolean useProfileName = true;
-    /** HP in the nametag: heart + segmented bar + number (also for players without a clan). */
     public boolean showHealth = true;
     public boolean healthBar = true;
     public boolean healthNumber = true;
     public int healthSegments = 5;
-    /** Optional manual colors: "clanname" (lowercase) -> "#RRGGBB". */
     public Map<String, String> colorOverrides = new LinkedHashMap<>();
 
     // ---- diamond panel ----
@@ -58,9 +52,7 @@ public final class CocoVisConfig {
     public int infoY = 6;
     public float infoScale = 1.0f;
     public boolean showWatermark = true;
-    /** Master switch of the info panel (logo is always part of it). */
     public boolean showInfo = true;
-    /** 0 = separate pills, 1 = one slab, 2 = vertical slab. */
     public int infoStyle = 1;
     public boolean showNick = true;
     public boolean showFps = true;
@@ -70,20 +62,25 @@ public final class CocoVisConfig {
 
     // ---- potion effects panel ----
     public boolean showEffects = true;
-    /** false = card with progress bars, true = compact pills. */
     public boolean effectsPills = false;
     public int effX = 6;
     public int effY = 170;
     public float effScale = 1.0f;
-    /** Effect icons with timers above other players (falls back to coloured dots). */
     public boolean nametagEffects = true;
 
     // ---- sky / time of day (client side only) ----
     public boolean skyEnabled = false;
-    /** 0 = dawn, 6000 = noon, 12000 = sunset, 18000 = midnight. */
     public int skyTime = 18000;
-    /** Follow the real clock of this PC (06:00 = dawn). */
     public boolean skyRealTime = false;
+
+    // ---- sky color ----
+    public boolean skyColorEnabled = false;
+    /** 0 = default, 1 = Neon, 2 = Gradient, 3 = Sunset, 4 = Aurora, 5 = Custom. */
+    public int skyColorMode = 1;
+    /** Custom sky tint in #RRGGBB format. */
+    public String skyColorHex = "#7B2CFF";
+    /** 0..100 percent tint strength. */
+    public int skyColorIntensity = 85;
 
     private static Map<String, Double> defaultPrices() {
         Map<String, Double> m = new LinkedHashMap<>();
@@ -110,6 +107,22 @@ public final class CocoVisConfig {
         return FabricLoader.getInstance().getConfigDir().resolve("cocovis.json");
     }
 
+    public static void openConfig() {
+        try {
+            Path p = path();
+            if (!Files.exists(p)) {
+                save();
+            }
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(p.toFile());
+            } else {
+                CocoVisClient.LOGGER.warn("Desktop integration is unavailable; edit {}", p);
+            }
+        } catch (IOException e) {
+            CocoVisClient.LOGGER.warn("Could not open cocovis.json", e);
+        }
+    }
+
     public static void load() {
         Path p = path();
         try {
@@ -119,12 +132,13 @@ public final class CocoVisConfig {
                     instance = loaded;
                 }
             }
-            if (instance.prices == null) {
-                instance.prices = defaultPrices();
+            if (instance.prices == null) instance.prices = defaultPrices();
+            if (instance.colorOverrides == null) instance.colorOverrides = new LinkedHashMap<>();
+            if (instance.skyColorHex == null || !instance.skyColorHex.matches("#?[0-9a-fA-F]{6}")) {
+                instance.skyColorHex = "#7B2CFF";
             }
-            if (instance.colorOverrides == null) {
-                instance.colorOverrides = new LinkedHashMap<>();
-            }
+            instance.skyColorIntensity = Math.max(0, Math.min(100, instance.skyColorIntensity));
+            instance.skyColorMode = Math.max(0, Math.min(5, instance.skyColorMode));
             save();
         } catch (Exception e) {
             CocoVisClient.LOGGER.warn("Could not read cocovis.json, using defaults", e);
