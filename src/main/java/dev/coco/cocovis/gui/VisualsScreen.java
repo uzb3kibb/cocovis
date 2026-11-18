@@ -391,8 +391,9 @@ public class VisualsScreen extends Screen {
                 g.fillGradient(x, topY, x + 1, bottomY + 1, topColor, bottomColor);
             }
         }
-        // Supersampled outline smooths the circular silhouette without rasterizing the fill.
-        Ui.ring(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
+        // Keep the outline on the fast GUI-resolution path too; supersampling it every
+        // frame adds hundreds of tiny fills and brings back the menu hitching.
+        Ui.fastRing(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
 
         float markerX = cx + (hsv[1] - 0.5f) * 2f * skyWheelR;
         float markerY = cy + (0.5f - hsv[2]) * 2f * skyWheelR;
