@@ -167,33 +167,33 @@ public class VisualsScreen extends Screen {
     private void drawNavIcon(GuiGraphicsExtractor g, int kind, float x, float y, int color) {
         switch (kind) {
             case 0 -> { // person
-                Ui.circle(g, x + 3, y, 6, color);
-                Ui.roundFill(g, x + 1, y + 7, 10, 5, 3, color);
+                Ui.fastCircle(g, x + 3, y, 6, color);
+                Ui.fastRoundFill(g, x + 1, y + 7, 10, 5, 3, color);
             }
             case 1 -> Ui.diamond(g, x, y, 12, color);
             case 2 -> { // grid
-                Ui.roundFill(g, x, y, 5, 5, 1, color);
-                Ui.roundFill(g, x + 7, y, 5, 5, 1, color);
-                Ui.roundFill(g, x, y + 7, 5, 5, 1, color);
-                Ui.roundFill(g, x + 7, y + 7, 5, 5, 1, color);
+                Ui.fastRoundFill(g, x, y, 5, 5, 1, color);
+                Ui.fastRoundFill(g, x + 7, y, 5, 5, 1, color);
+                Ui.fastRoundFill(g, x, y + 7, 5, 5, 1, color);
+                Ui.fastRoundFill(g, x + 7, y + 7, 5, 5, 1, color);
             }
             case 3 -> { // eye-like: ring + dot
-                Ui.ring(g, x, y, 12, color);
-                Ui.circle(g, x + 4, y + 4, 4, color);
+                Ui.fastRing(g, x, y, 12, color);
+                Ui.fastCircle(g, x + 4, y + 4, 4, color);
             }
             case 4 -> { // move: plus
-                Ui.roundFill(g, x + 5, y, 2, 12, 1, color);
-                Ui.roundFill(g, x, y + 5, 12, 2, 1, color);
+                Ui.fastRoundFill(g, x + 5, y, 2, 12, 1, color);
+                Ui.fastRoundFill(g, x, y + 5, 12, 2, 1, color);
             }
             case 6 -> { // sun: disc with rays
-                Ui.circle(g, x + 2.5f, y + 2.5f, 7, color);
-                Ui.roundFill(g, x + 5.2f, y - 0.5f, 1.6f, 2.4f, 0.8f, color);
-                Ui.roundFill(g, x + 5.2f, y + 10.1f, 1.6f, 2.4f, 0.8f, color);
-                Ui.roundFill(g, x - 0.5f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
-                Ui.roundFill(g, x + 10.1f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
+                Ui.fastCircle(g, x + 2.5f, y + 2.5f, 7, color);
+                Ui.fastRoundFill(g, x + 5.2f, y - 0.5f, 1.6f, 2.4f, 0.8f, color);
+                Ui.fastRoundFill(g, x + 5.2f, y + 10.1f, 1.6f, 2.4f, 0.8f, color);
+                Ui.fastRoundFill(g, x - 0.5f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
+                Ui.fastRoundFill(g, x + 10.1f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
             }
             default -> { // reset: ring with a tip
-                Ui.ring(g, x, y + 1, 11, color);
+                Ui.fastRing(g, x, y + 1, 11, color);
                 Ui.triangleRight(g, x + 6, y - 1, 5, 5, color);
             }
         }
@@ -338,8 +338,8 @@ public class VisualsScreen extends Screen {
         skyWheelR = Math.min(53f, panelW * 0.34f);
         float innerR = skyWheelR * 0.64f;
 
-        Ui.roundFill(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, DRAWER);
-        Ui.roundOutline(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, FIELD_LINE);
+        Ui.fastRoundFill(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, DRAWER);
+        Ui.fastRoundOutline(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, FIELD_LINE);
         Ui.title(g, font, "Цвет неба", left + 14, listTop + 17, TEXT);
         Ui.text(g, font, "Выбор оттенка", left + 14, listTop + 34, MUTED, false);
 
@@ -351,7 +351,7 @@ public class VisualsScreen extends Screen {
             float radius = skyWheelR * 0.84f;
             float d = 9.5f;
             int rgb = Color.HSBtoRGB(hue, 1f, 1f);
-            Ui.circle(g, cx + (float) Math.cos(a) * radius - d / 2f,
+            Ui.fastCircle(g, cx + (float) Math.cos(a) * radius - d / 2f,
                     cy + (float) Math.sin(a) * radius - d / 2f, d, 0xFF000000 | (rgb & 0xFFFFFF));
         }
 
@@ -361,22 +361,22 @@ public class VisualsScreen extends Screen {
             float t = i / 8f;
             float d = innerR * 2f * t;
             int rgb = Color.HSBtoRGB(hsv[0], t, 1f) & 0xFFFFFF;
-            Ui.circle(g, cx - d / 2f, cy - d / 2f, d, 0xFF000000 | rgb);
+            Ui.fastCircle(g, cx - d / 2f, cy - d / 2f, d, 0xFF000000 | rgb);
         }
-        Ui.ring(g, cx - innerR, cy - innerR, innerR * 2f, 0xFF30343D);
+        Ui.fastRing(g, cx - innerR, cy - innerR, innerR * 2f, 0xFF30343D);
 
         // Hue marker sits on the outer ring; saturation marker sits inside the disk.
         float hueAngle = hsv[0] * (float) (Math.PI * 2.0);
         float hx = cx + (float) Math.cos(hueAngle) * skyWheelR * 0.84f;
         float hy = cy + (float) Math.sin(hueAngle) * skyWheelR * 0.84f;
-        Ui.circle(g, hx - 5, hy - 5, 10, 0xFF111318);
-        Ui.ring(g, hx - 5, hy - 5, 10, 0xFFFFFFFF);
+        Ui.fastCircle(g, hx - 5, hy - 5, 10, 0xFF111318);
+        Ui.fastRing(g, hx - 5, hy - 5, 10, 0xFFFFFFFF);
 
         float satRadius = innerR * hsv[1];
         float sx = cx + (float) Math.cos(hueAngle) * satRadius;
         float sy = cy + (float) Math.sin(hueAngle) * satRadius;
-        Ui.circle(g, sx - 5, sy - 5, 10, 0xFF111318);
-        Ui.ring(g, sx - 5, sy - 5, 10, 0xFFFFFFFF);
+        Ui.fastCircle(g, sx - 5, sy - 5, 10, 0xFF111318);
+        Ui.fastRing(g, sx - 5, sy - 5, 10, 0xFFFFFFFF);
 
         float fieldY = cy + skyWheelR + 20;
         float fieldX = left + 14;
@@ -384,8 +384,8 @@ public class VisualsScreen extends Screen {
         Ui.text(g, font, "HEX", fieldX, fieldY + 9, MUTED, false);
         float inputX = fieldX + 34;
         float inputW = fieldW - 34;
-        Ui.roundFill(g, inputX, fieldY, inputW, 24, 5, FIELD);
-        Ui.roundOutline(g, inputX, fieldY, inputW, 24, 5, skyHexFocused ? BLUE : FIELD_LINE);
+        Ui.fastRoundFill(g, inputX, fieldY, inputW, 24, 5, FIELD);
+        Ui.fastRoundOutline(g, inputX, fieldY, inputW, 24, 5, skyHexFocused ? BLUE : FIELD_LINE);
         Ui.text(g, font, "#" + skyHex, inputX + 8, fieldY + 8, TEXT, false);
         Ui.text(g, font, "Цвет применяется сразу", fieldX, fieldY + 34, MUTED, false);
     }
@@ -452,10 +452,10 @@ public class VisualsScreen extends Screen {
         g.pose().scale(pop, pop);
         g.pose().translate(-(x0 + w / 2f), -(y0 + h / 2f));
 
-        Ui.shadow(g, x0, topY, w, h, 6);
-        Ui.roundFill(g, x0, topY, w, h, 6, BG);
-        Ui.roundGradient(g, x0 + 1, topY + 1, sbW - 1, 46, 5, Ui.fade(BLUE, 0.11f), Ui.fade(BLUE, 0f));
-        Ui.roundOutline(g, x0, topY, w, h, 6, DIVIDER);
+        Ui.fastShadow(g, x0, topY, w, h, 6);
+        Ui.fastRoundFill(g, x0, topY, w, h, 6, BG);
+        Ui.fastRoundGradient(g, x0 + 1, topY + 1, sbW - 1, 46, 5, Ui.fade(BLUE, 0.11f), Ui.fade(BLUE, 0f));
+        Ui.fastRoundOutline(g, x0, topY, w, h, 6, DIVIDER);
         int half = (w - 40) / 2;
         Ui.hBar(g, x0 + 20, Math.round(topY), half, 1, Ui.fade(BLUE, 0f), Ui.fade(BLUE, 0.9f));
         Ui.hBar(g, x0 + 20 + half, Math.round(topY), w - 40 - half, 1, Ui.fade(BLUE, 0.9f), Ui.fade(BLUE, 0f));
@@ -474,8 +474,8 @@ public class VisualsScreen extends Screen {
         }
         navSelY = smooth(navSelY, targetSel, dt, 18f);
         if (search.isEmpty()) {
-            Ui.roundFill(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_BG);
-            Ui.roundOutline(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_LINE);
+            Ui.fastRoundFill(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_BG);
+            Ui.fastRoundOutline(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_LINE);
             Ui.rect(g, x0 + 7, navSelY + 7, 2, NAV_H - 14, BLUE);
         }
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
@@ -492,8 +492,8 @@ public class VisualsScreen extends Screen {
 
         float fy = topY + h - 36;
         Ui.rect(g, x0 + 1, fy - 7, sbW - 1, 1, DIVIDER);
-        Ui.roundFill(g, x0 + 11, fy, 22, 22, 11, 0xFF1B1C22);
-        Ui.roundOutline(g, x0 + 10, fy - 1, 24, 24, 12, Ui.fade(BLUE, 0.45f));
+        Ui.fastRoundFill(g, x0 + 11, fy, 22, 22, 11, 0xFF1B1C22);
+        Ui.fastRoundOutline(g, x0 + 10, fy - 1, 24, 24, 12, Ui.fade(BLUE, 0.45f));
         Ui.text(g, font, "?", x0 + 19, fy + 7, 0xFF7A7F8A, false);
         String nick = mc.player != null ? mc.player.getName().getString() : "CocoVis";
         Ui.text(g, font, fit(font, nick, sbW - 48), x0 + 40, fy + 2, TEXT, false);
@@ -501,10 +501,10 @@ public class VisualsScreen extends Screen {
 
         // ---------- search ----------
         float sy = topY + 9;
-        Ui.roundFill(g, contentX, sy, contentW, 24, 6, FIELD);
-        Ui.roundOutline(g, contentX, sy, contentW, 24, 6, searchFocused ? 0xFF3A4668 : FIELD_LINE);
+        Ui.fastRoundFill(g, contentX, sy, contentW, 24, 6, FIELD);
+        Ui.fastRoundOutline(g, contentX, sy, contentW, 24, 6, searchFocused ? 0xFF3A4668 : FIELD_LINE);
         int mc0 = searchFocused ? BLUE : MUTED;
-        Ui.roundOutline(g, contentX + 9, sy + 7, 8, 8, 4, mc0);
+        Ui.fastRoundOutline(g, contentX + 9, sy + 7, 8, 8, 4, mc0);
         Ui.diamond(g, contentX + 15, sy + 14, 5, mc0);
         if (search.isEmpty()) {
             Ui.text(g, font, "Поиск", contentX + 26, sy + 8, MUTED, false);
@@ -560,7 +560,7 @@ public class VisualsScreen extends Screen {
             float trackH = listBottom - listTop;
             float thumbH = Math.max(18f, trackH * trackH / (trackH + max));
             float thumbY = listTop + (trackH - thumbH) * (scroll / max);
-            Ui.roundFill(g, contentX + contentW + 7, thumbY, 2, thumbH, 1, 0xFF3A3D46);
+            Ui.fastRoundFill(g, contentX + contentW + 7, thumbY, 2, thumbH, 1, 0xFF3A3D46);
         }
 
         if (hovered != null) {
@@ -574,7 +574,7 @@ public class VisualsScreen extends Screen {
         boolean hover = Ui.inside(mX, mY, x, y, w, NAV_H);
         navHover[hoverIndex] = smooth(navHover[hoverIndex], hover ? 1f : 0f, dt, 14f);
         if (!selected && navHover[hoverIndex] > 0.01f) {
-            Ui.roundFill(g, x, y, w, NAV_H, 7, Ui.fade(0xFF111218, navHover[hoverIndex]));
+            Ui.fastRoundFill(g, x, y, w, NAV_H, 7, Ui.fade(0xFF111218, navHover[hoverIndex]));
         }
         drawNavIcon(g, icon, x + 11, y + 7, selected ? BLUE : NAV_TEXT);
         Ui.text(g, font, fit(font, name, w - 38), x + 29, y + (NAV_H - 8) / 2f, selected ? TEXT : NAV_TEXT, false);
@@ -610,10 +610,10 @@ public class VisualsScreen extends Screen {
         float y = cell.y() + slide;
         float rw = cell.w();
         if (hv > 0.01f) {
-            Ui.roundFill(g, x, y, rw, ROW_H - 1, 4, Ui.fade(ROW_HOT, hv * af));
+            Ui.fastRoundFill(g, x, y, rw, ROW_H - 1, 4, Ui.fade(ROW_HOT, hv * af));
         }
         if (oa > 0.005f && cell.drawerH() > 0.5f) {
-            Ui.roundFill(g, x + 3, y + ROW_H - 2, rw - 3, cell.drawerH() + 2, 5, Ui.fade(DRAWER, Math.min(1f, oa * 1.6f)));
+            Ui.fastRoundFill(g, x + 3, y + ROW_H - 2, rw - 3, cell.drawerH() + 2, 5, Ui.fade(DRAWER, Math.min(1f, oa * 1.6f)));
             if (cell.drawerH() > 10f) {
                 Ui.rect(g, x + 3, y + ROW_H + 4, 1, cell.drawerH() - 8, Ui.fade(BLUE, 0.5f * oa));
             }
@@ -630,18 +630,18 @@ public class VisualsScreen extends Screen {
             boolean dh = Ui.inside(mX, mY, dotsX(cell), cell.y(), 24, ROW_H);
             int dc = oa > 0.5f ? BLUE : dh ? TEXT : MUTED;
             for (int d = 0; d < 3; d++) {
-                Ui.circle(g, dotsX(cell) + 2 + d * 6, y + ROW_H / 2f - 1, 3, Ui.fade(dc, af));
+                Ui.fastCircle(g, dotsX(cell) + 2 + d * 6, y + ROW_H / 2f - 1, 3, Ui.fade(dc, af));
             }
         }
 
         float ta = smooth(toggleAnim.getOrDefault(module, enabled ? 1f : 0f), enabled ? 1f : 0f, dt, 16f);
         toggleAnim.put(module, ta);
         if (ta > 0.02f) {
-            Ui.roundFill(g, tx - 2, ty - 2, TOG_W + 4, TOG_H + 4, 8, Ui.fade(TOG_ON, 0.20f * ta * af));
+            Ui.fastRoundFill(g, tx - 2, ty - 2, TOG_W + 4, TOG_H + 4, 8, Ui.fade(TOG_ON, 0.20f * ta * af));
         }
-        Ui.roundFill(g, tx, ty, TOG_W, TOG_H, 6, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, ta), af));
+        Ui.fastRoundFill(g, tx, ty, TOG_W, TOG_H, 6, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, ta), af));
         float kx = tx + 2 + ta * (TOG_W - 13);
-        Ui.roundFill(g, kx, ty + 2, 9, 9, 4, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, ta), af));
+        Ui.fastRoundFill(g, kx, ty + 2, 9, 9, 4, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, ta), af));
     }
 
     private void drawOption(GuiGraphicsExtractor g, Font font, Cell cell, float dt) {
@@ -657,7 +657,7 @@ public class VisualsScreen extends Screen {
         float rh = cell.h();
         boolean hover = mY >= listTop && mY < listBottom && Ui.inside(mX, mY, x, y, rw, rh);
         if (hover && s.kind != Setting.Kind.SLIDER) {
-            Ui.roundFill(g, x + 6, y, rw - 8, rh - 1, 4, Ui.fade(0xFF12131A, vis));
+            Ui.fastRoundFill(g, x + 6, y, rw - 8, rh - 1, 4, Ui.fade(0xFF12131A, vis));
         }
         int label = hover ? TEXT : NAV_TEXT;
         float right = x + rw - 10;
@@ -670,16 +670,16 @@ public class VisualsScreen extends Screen {
                 settingAnim.put(s, a);
                 float sx = right - 22;
                 float sy = y + (rh - 11) / 2f;
-                Ui.roundFill(g, sx, sy, 22, 11, 5, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, a), vis));
-                Ui.roundFill(g, sx + 2 + a * 11, sy + 2, 7, 7, 3, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, a), vis));
+                Ui.fastRoundFill(g, sx, sy, 22, 11, 5, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, a), vis));
+                Ui.fastRoundFill(g, sx + 2 + a * 11, sy + 2, 7, 7, 3, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, a), vis));
             }
             case CYCLE -> {
                 String v = s.valueText();
                 float pw = Ui.width(font, v) + 18;
                 float px = right - pw;
                 float py = y + (rh - 16) / 2f;
-                Ui.roundFill(g, px, py, pw, 16, 5, Ui.fade(FIELD, vis));
-                Ui.roundOutline(g, px, py, pw, 16, 5, Ui.fade(hover ? BLUE : FIELD_LINE, vis));
+                Ui.fastRoundFill(g, px, py, pw, 16, 5, Ui.fade(FIELD, vis));
+                Ui.fastRoundOutline(g, px, py, pw, 16, 5, Ui.fade(hover ? BLUE : FIELD_LINE, vis));
                 Ui.text(g, font, v, px + 9, py + 4, Ui.fade(BLUE, vis), false);
             }
             case SLIDER -> {
@@ -690,15 +690,15 @@ public class VisualsScreen extends Screen {
                 float tx = x + 14;
                 float tw = rw - 28;
                 float ty = y + 22;
-                Ui.roundFill(g, tx, ty, tw, 4, 2, Ui.fade(0xFF22232A, vis));
+                Ui.fastRoundFill(g, tx, ty, tw, 4, 2, Ui.fade(0xFF22232A, vis));
                 if (f > 0.001f) {
-                    Ui.roundFill(g, tx, ty, Math.max(4f, tw * f), 4, 2, Ui.fade(Ui.mix(TOG_ON, BLUE, f), vis));
+                    Ui.fastRoundFill(g, tx, ty, Math.max(4f, tw * f), 4, 2, Ui.fade(Ui.mix(TOG_ON, BLUE, f), vis));
                 }
                 float glow = dragging == s ? 0.35f : hover ? 0.2f : 0f;
                 if (glow > 0f) {
-                    Ui.circle(g, tx + tw * f - 8, ty + 2 - 8, 16, Ui.fade(BLUE, glow * vis));
+                    Ui.fastCircle(g, tx + tw * f - 8, ty + 2 - 8, 16, Ui.fade(BLUE, glow * vis));
                 }
-                Ui.circle(g, tx + tw * f - 5, ty + 2 - 5, 10, Ui.fade(0xFFFFFFFF, vis));
+                Ui.fastCircle(g, tx + tw * f - 5, ty + 2 - 5, 10, Ui.fade(0xFFFFFFFF, vis));
             }
             case ACTION -> Ui.triangleRight(g, right - 5, y + (rh - 7) / 2f, 4, 7,
                     Ui.fade(hover ? BLUE : MUTED, vis));
@@ -710,8 +710,8 @@ public class VisualsScreen extends Screen {
         float tw = Ui.width(font, t) + 14;
         float tx = Math.min(mX + 12, sw - tw - 4);
         float ty = mY + 14;
-        Ui.roundFill(g, tx, ty, tw, 18, 5, 0xF0101114);
-        Ui.roundOutline(g, tx, ty, tw, 18, 5, 0xFF2A2C34);
+        Ui.fastRoundFill(g, tx, ty, tw, 18, 5, 0xF0101114);
+        Ui.fastRoundOutline(g, tx, ty, tw, 18, 5, 0xFF2A2C34);
         Ui.text(g, font, t, tx + 7, ty + 5, ROW_TEXT, false);
     }
 
