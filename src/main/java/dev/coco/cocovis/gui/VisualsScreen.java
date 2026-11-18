@@ -366,34 +366,12 @@ public class VisualsScreen extends Screen {
         float hueMarkerX = skyHueBarX + hsv[0] * skyHueBarW;
         Ui.fastRoundOutline(g, hueMarkerX - 2, skyHueBarY - 2, 4, skyHueBarH + 4, 2, 0xFFFFFFFF);
 
-        // Circular saturation/value field.
-        // Render one vertical RGB gradient per GUI column instead of one fill per pixel.
-        // For a fixed hue/saturation, RGB scales linearly with value, so the two endpoint
-        // colors reproduce the exact HSV brightness ramp while reducing thousands of
-        // per-frame fill calls to roughly the disk diameter.
-        int diskRadius = Math.max(1, (int) Math.floor(skyWheelR));
-        int diskCenterX = Math.round(cx);
-        int diskCenterY = Math.round(cy);
-        for (int px = -diskRadius; px <= diskRadius; px++) {
-            float nx = px / (float) diskRadius;
-            int halfHeight = (int) Math.floor(Math.sqrt(Math.max(0f, 1f - nx * nx)) * diskRadius);
-            float saturation = clamp01(px / (2f * skyWheelR) + 0.5f);
-            float topValue = clamp01(0.5f + halfHeight / (2f * skyWheelR));
-            float bottomValue = clamp01(0.5f - halfHeight / (2f * skyWheelR));
-            int topColor = Color.HSBtoRGB(hsv[0], saturation, topValue);
-            int bottomColor = Color.HSBtoRGB(hsv[0], saturation, bottomValue);
-            int x = diskCenterX + px;
-            int topY = diskCenterY - halfHeight;
-            int bottomY = diskCenterY + halfHeight;
-            if (topY == bottomY) {
-                g.fill(x, topY, x + 1, bottomY + 1, topColor);
-            } else {
-                g.fillGradient(x, topY, x + 1, bottomY + 1, topColor, bottomColor);
-            }
-        }
-        // Keep the outline on the fast GUI-resolution path too; supersampling it every
-        // frame adds hundreds of tiny fills and brings back the menu hitching.
-        Ui.fastRing(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
+        // Rasterise the SV disk at physical-pixel resolution. This keeps the circular
+        // silhouette genuinely round instead of exposing the coarse GUI-pixel columns.
+        Ui.svColorDisk(g, cx, cy, skyWheelR, hsv[0]);
+        // The edge uses the existing sub-pixel antialiased outline; the disk itself remains
+        // a compact column-gradient render (roughly 2 * radius * GUI scale operations).
+        Ui.ring(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
 
         float markerX = cx + (hsv[1] - 0.5f) * 2f * skyWheelR;
         float markerY = cy + (0.5f - hsv[2]) * 2f * skyWheelR;
