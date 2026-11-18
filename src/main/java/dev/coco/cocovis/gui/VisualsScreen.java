@@ -366,12 +366,9 @@ public class VisualsScreen extends Screen {
         float hueMarkerX = skyHueBarX + hsv[0] * skyHueBarW;
         Ui.fastRoundOutline(g, hueMarkerX - 2, skyHueBarY - 2, 4, skyHueBarH + 4, 2, 0xFFFFFFFF);
 
-        // Rasterise the SV disk at physical-pixel resolution. This keeps the circular
-        // silhouette genuinely round instead of exposing the coarse GUI-pixel columns.
-        Ui.svColorDisk(g, cx, cy, skyWheelR, hsv[0]);
-        // The edge uses the existing sub-pixel antialiased outline; the disk itself remains
-        // a compact column-gradient render (roughly 2 * radius * GUI scale operations).
-        Ui.ring(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
+        // Fast GUI-resolution SV disk. No visible outline: the circle is defined only
+        // by its clipped color fill, with one gradient operation per column.
+        Ui.fastSvColorDisk(g, cx, cy, skyWheelR, hsv[0]);
 
         float markerX = cx + (hsv[1] - 0.5f) * 2f * skyWheelR;
         float markerY = cy + (0.5f - hsv[2]) * 2f * skyWheelR;
@@ -731,6 +728,7 @@ public class VisualsScreen extends Screen {
                 return true;
             }
             if (skyHexFieldAt(wheelMouseX, wheelMouseY)) {
+                if (!skyHexFocused) skyHex = "";
                 skyHexFocused = true;
                 return true;
             }
@@ -828,6 +826,10 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
+        if (skyHexFocused && event.hasControlDown() && event.key() == 65) {
+            skyHex = "";
+            return true;
+        }
         if (skyHexFocused && event.key() == 259 && !skyHex.isEmpty()) {
             skyHex = skyHex.substring(0, skyHex.length() - 1);
             applySkyHex();
