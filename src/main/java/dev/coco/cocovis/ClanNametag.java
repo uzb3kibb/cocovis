@@ -61,7 +61,7 @@ public final class ClanNametag {
         if (!effects.isEmpty()) {
             out.append(Component.literal("  "));
             Style iconFont = EffectGlyphs.style();
-            int shown = Math.min(4, effects.size());
+            int shown = Math.min(8, effects.size());
             for (int i = 0; i < shown; i++) {
                 EffectsHud.Entry e = effects.get(i);
                 Character glyph = EffectGlyphs.glyph(e.id());
