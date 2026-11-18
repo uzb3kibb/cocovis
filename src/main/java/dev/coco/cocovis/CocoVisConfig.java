@@ -75,8 +75,15 @@ public final class CocoVisConfig {
     public int effX = 6;
     public int effY = 170;
     public float effScale = 1.0f;
-    /** Coloured dots for active effects next to the nick. */
+    /** Effect icons with timers above other players (falls back to coloured dots). */
     public boolean nametagEffects = true;
+
+    // ---- sky / time of day (client side only) ----
+    public boolean skyEnabled = false;
+    /** 0 = dawn, 6000 = noon, 12000 = sunset, 18000 = midnight. */
+    public int skyTime = 18000;
+    /** Follow the real clock of this PC (06:00 = dawn). */
+    public boolean skyRealTime = false;
 
     private static Map<String, Double> defaultPrices() {
         Map<String, Double> m = new LinkedHashMap<>();

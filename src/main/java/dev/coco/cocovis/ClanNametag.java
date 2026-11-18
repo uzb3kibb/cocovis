@@ -60,12 +60,27 @@ public final class ClanNametag {
         }
         if (!effects.isEmpty()) {
             out.append(Component.literal("  "));
-            int shown = Math.min(6, effects.size());
+            Style iconFont = EffectGlyphs.style();
+            int shown = Math.min(4, effects.size());
             for (int i = 0; i < shown; i++) {
-                out.append(Component.literal("●").withStyle(color(effects.get(i).color())));
+                EffectsHud.Entry e = effects.get(i);
+                Character glyph = EffectGlyphs.glyph(e.id());
+                if (iconFont != null && glyph != null) {
+                    out.append(Component.literal(String.valueOf(glyph)).withStyle(iconFont));
+                } else {
+                    out.append(Component.literal("●").withStyle(color(e.color())));
+                }
+                if (!e.infinite() && e.ticks() >= 0) {
+                    int seconds = e.ticks() / 20;
+                    String time = String.format(Locale.ROOT, " %d:%02d", seconds / 60, seconds % 60);
+                    out.append(Component.literal(time).withStyle(color(seconds <= 10 ? 0xFF6B6B : 0xFFFFFF)));
+                }
+                if (i < shown - 1) {
+                    out.append(Component.literal("  "));
+                }
             }
             if (effects.size() > shown) {
-                out.append(Component.literal("+" + (effects.size() - shown)).withStyle(color(EMPTY_COLOR)));
+                out.append(Component.literal(" +" + (effects.size() - shown)).withStyle(color(EMPTY_COLOR)));
             }
         }
         return out;

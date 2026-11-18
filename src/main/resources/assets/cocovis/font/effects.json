@@ -1,0 +1,359 @@
+{
+ "providers": [
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/speed.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue000"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/slowness.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue001"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/haste.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue002"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/mining_fatigue.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue003"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/strength.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue004"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/instant_health.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue005"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/instant_damage.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue006"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/jump_boost.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue007"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/nausea.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue008"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/regeneration.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue009"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/resistance.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00a"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/fire_resistance.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/water_breathing.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/invisibility.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00d"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/blindness.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00e"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/night_vision.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue00f"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/hunger.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue010"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/weakness.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue011"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/poison.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue012"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/wither.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue013"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/health_boost.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue014"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/absorption.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue015"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/saturation.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue016"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/glowing.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue017"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/levitation.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue018"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/luck.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue019"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/unluck.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01a"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/slow_falling.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/conduit_power.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/dolphins_grace.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01d"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/bad_omen.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01e"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/hero_of_the_village.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue01f"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/darkness.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue020"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/trial_omen.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue021"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/raid_omen.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue022"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/wind_charged.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue023"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/weaving.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue024"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/oozing.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue025"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:gui/sprites/mob_effect/infested.png",
+   "ascent": 8,
+   "height": 9,
+   "chars": [
+    "\ue026"
+   ]
+  },
+  {
+   "type": "reference",
+   "id": "minecraft:default"
+  }
+ ]
+}

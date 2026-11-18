@@ -53,7 +53,7 @@ public final class Ui {
         return (a << 24) | (color & 0xFFFFFF);
     }
 
-    public static boolean inside(double mx, double my, int x, int y, int w, int h) {
+    public static boolean inside(double mx, double my, float x, float y, float w, float h) {
         return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
@@ -64,10 +64,10 @@ public final class Ui {
     }
 
     /** Switches to "1 unit = 1 real screen pixel" coordinates with the origin at (x, y). */
-    private static int begin(GuiGraphicsExtractor g, int x, int y) {
+    private static int begin(GuiGraphicsExtractor g, float x, float y) {
         int gs = guiScale();
         g.pose().pushMatrix();
-        g.pose().translate((float) x, (float) y);
+        g.pose().translate(Math.round(x * gs) / (float) gs, Math.round(y * gs) / (float) gs);
         g.pose().scale(1f / gs, 1f / gs);
         return gs;
     }
@@ -130,14 +130,18 @@ public final class Ui {
 
     // ------------------------------------------------------------------ shapes
 
-    public static void roundGradient(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int top, int bot) {
+    public static void roundGradient(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, int top, int bot) {
         if (w <= 0 || h <= 0) {
             return;
         }
         int gs = begin(g, x, y);
-        int pw = w * gs;
-        int ph = h * gs;
-        int pr = Math.max(0, Math.min(r * gs, Math.min(pw, ph) / 2));
+        int pw = Math.round(w * gs);
+        int ph = Math.round(h * gs);
+        if (pw <= 0 || ph <= 0) {
+            end(g);
+            return;
+        }
+        int pr = Math.max(0, Math.min(Math.round(r * gs), Math.min(pw, ph) / 2));
         boolean flat = top == bot;
         for (int row = 0; row < pr; row++) {
             double a = inset(pr, ph, row);
@@ -157,20 +161,24 @@ public final class Ui {
         end(g);
     }
 
-    public static void roundFill(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+    public static void roundFill(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, int color) {
         roundGradient(g, x, y, w, h, r, color, color);
     }
 
     /** 1 GUI pixel (= {@code guiScale} real pixels) thick outline. */
-    public static void roundOutline(GuiGraphicsExtractor g, int x, int y, int w, int h, int r, int color) {
+    public static void roundOutline(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, int color) {
         if (w <= 1 || h <= 1) {
             return;
         }
         int gs = begin(g, x, y);
         int t = gs;
-        int pw = w * gs;
-        int ph = h * gs;
-        int pr = Math.max(0, Math.min(r * gs, Math.min(pw, ph) / 2));
+        int pw = Math.round(w * gs);
+        int ph = Math.round(h * gs);
+        if (pw <= 2 * t || ph <= 2 * t) {
+            end(g);
+            return;
+        }
+        int pr = Math.max(0, Math.min(Math.round(r * gs), Math.min(pw, ph) / 2));
         int ir = Math.max(0, pr - t);
         int iw = pw - 2 * t;
         int ih = ph - 2 * t;
@@ -194,15 +202,27 @@ public final class Ui {
         end(g);
     }
 
-    public static void shadow(GuiGraphicsExtractor g, int x, int y, int w, int h, int r) {
+    public static void shadow(GuiGraphicsExtractor g, float x, float y, float w, float h, float r) {
         roundFill(g, x - 1, y, w + 2, h + 3, r + 1, 0x14000000);
         roundFill(g, x - 2, y + 1, w + 4, h + 5, r + 2, 0x0C000000);
     }
 
-    public static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+    public static void panel(GuiGraphicsExtractor g, float x, float y, float w, float h) {
         shadow(g, x, y, w, h, 6);
         roundGradient(g, x, y, w, h, 6, PANEL_TOP, PANEL_BOT);
         roundOutline(g, x, y, w, h, 6, BORDER);
+    }
+
+    /** Plain rectangle at real-pixel precision (for dividers, lines, sliders). */
+    public static void rect(GuiGraphicsExtractor g, float x, float y, float w, float h, int color) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        int gs = begin(g, x, y);
+        int pw = Math.max(1, Math.round(w * gs));
+        int ph = Math.max(1, Math.round(h * gs));
+        g.fill(0, 0, pw, ph, color);
+        end(g);
     }
 
     public static void hBar(GuiGraphicsExtractor g, int x, int y, int w, int h, int left, int right) {
@@ -213,23 +233,23 @@ public final class Ui {
     }
 
     /** Dark rounded card used by the HUD panels (diamonds, effects). */
-    public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+    public static void card(GuiGraphicsExtractor g, float x, float y, float w, float h) {
         roundFill(g, x, y, w, h, 7, 0xE6101115);
         roundOutline(g, x, y, w, h, 7, 0xFF26272E);
     }
 
-    public static void circle(GuiGraphicsExtractor g, int x, int y, int d, int color) {
-        roundFill(g, x, y, d, d, d / 2, color);
+    public static void circle(GuiGraphicsExtractor g, float x, float y, float d, int color) {
+        roundFill(g, x, y, d, d, d / 2f, color);
     }
 
-    public static void ring(GuiGraphicsExtractor g, int x, int y, int d, int color) {
-        roundOutline(g, x, y, d, d, d / 2, color);
+    public static void ring(GuiGraphicsExtractor g, float x, float y, float d, int color) {
+        roundOutline(g, x, y, d, d, d / 2f, color);
     }
 
     /** Filled diamond (rotated square) inside a size x size box. */
-    public static void diamond(GuiGraphicsExtractor g, int x, int y, int size, int color) {
+    public static void diamond(GuiGraphicsExtractor g, float x, float y, float size, int color) {
         int gs = begin(g, x, y);
-        int ps = size * gs;
+        int ps = Math.round(size * gs);
         double half = ps / 2.0;
         for (int row = 0; row < ps; row++) {
             double hw = half * (1.0 - Math.abs(row + 0.5 - half) / half);
@@ -239,10 +259,10 @@ public final class Ui {
     }
 
     /** Filled triangle pointing down (w x h box). */
-    public static void triangleDown(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+    public static void triangleDown(GuiGraphicsExtractor g, float x, float y, float w, float h, int color) {
         int gs = begin(g, x, y);
-        int pw = w * gs;
-        int ph = h * gs;
+        int pw = Math.round(w * gs);
+        int ph = Math.round(h * gs);
         for (int row = 0; row < ph; row++) {
             double hw = pw / 2.0 * (1.0 - (row + 0.5) / ph);
             span(g, row, pw / 2.0 - hw, pw / 2.0 + hw, color);
@@ -251,10 +271,10 @@ public final class Ui {
     }
 
     /** Filled triangle pointing right (w x h box). */
-    public static void triangleRight(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+    public static void triangleRight(GuiGraphicsExtractor g, float x, float y, float w, float h, int color) {
         int gs = begin(g, x, y);
-        int pw = w * gs;
-        int ph = h * gs;
+        int pw = Math.round(w * gs);
+        int ph = Math.round(h * gs);
         double half = ph / 2.0;
         for (int row = 0; row < ph; row++) {
             double len = pw * (1.0 - Math.abs(row + 0.5 - half) / half);
@@ -271,7 +291,8 @@ public final class Ui {
     private static Method textMethod;
     private static boolean textFailed;
 
-    private static Style fontStyle(String path) {
+    /** Style that selects the cocovis:<path> font, or null if the game cannot apply it. */
+    public static Style fontStyle(String path) {
         try {
             Identifier id = Identifier.fromNamespaceAndPath(CocoVisClient.MOD_ID, path);
             for (Method m : Style.class.getMethods()) {
@@ -332,26 +353,42 @@ public final class Ui {
     }
 
     /** Draws text with the UI font. Shadows are dropped for a flat look when the custom font works. */
-    public static void text(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color, boolean shadow) {
+    public static void text(GuiGraphicsExtractor g, Font font, String s, float x, float y, int color, boolean shadow) {
         draw(g, font, s, x, y, color, shadow, false);
     }
 
     /** Semi-bold variant for titles. */
-    public static void title(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color) {
+    public static void title(GuiGraphicsExtractor g, Font font, String s, float x, float y, int color) {
         draw(g, font, s, x, y, color, false, true);
     }
 
-    private static void draw(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color, boolean shadow, boolean title) {
+    private static void draw(GuiGraphicsExtractor g, Font font, String s, float x, float y, int color, boolean shadow, boolean title) {
         initText();
+        int ix = (int) Math.floor(x);
+        int iy = (int) Math.floor(y);
         if (!textFailed) {
+            int gs = guiScale();
+            float fx = Math.round((x - ix) * gs) / (float) gs;
+            float fy = Math.round((y - iy) * gs) / (float) gs;
+            boolean shifted = fx != 0f || fy != 0f;
             try {
-                textMethod.invoke(g, font, styled(s, title), x, y, color, false);
+                if (shifted) {
+                    g.pose().pushMatrix();
+                    g.pose().translate(fx, fy);
+                }
+                textMethod.invoke(g, font, styled(s, title), ix, iy, color, false);
+                if (shifted) {
+                    g.pose().popMatrix();
+                }
                 return;
             } catch (Throwable t) {
+                if (shifted) {
+                    g.pose().popMatrix();
+                }
                 textFailed = true;
             }
         }
-        g.text(font, s, x, y, color, shadow);
+        g.text(font, s, ix, iy, color, shadow);
     }
 
     public static int width(Font font, String s) {

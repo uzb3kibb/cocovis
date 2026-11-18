@@ -24,13 +24,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * CocoVis menu: sidebar + two columns of modules. A module's "..." opens a drawer with its options
- * (so many old functions are now just options of one module). Compact window, animated selection,
- * staggered rows, glow on active toggles.
+ * CocoVis menu: sidebar + two columns of modules. "..." opens a drawer with the module's options
+ * (toggles, cycles, sliders, actions). Everything is positioned in floats and drawn at real-pixel
+ * precision, animations use exponential smoothing so they stay fluid at any frame rate.
  */
 public class VisualsScreen extends Screen {
     private static final int ROW_H = 28;
-    private static final int SET_H = 24;
     private static final int TITLE_H = 24;
     private static final int SECTION_GAP = 12;
     private static final int COL_GAP = 16;
@@ -39,7 +38,6 @@ public class VisualsScreen extends Screen {
     private static final int TOG_W = 26;
     private static final int TOG_H = 13;
 
-    // palette
     private static final int BG = 0xFF09090B;
     private static final int DIVIDER = 0xFF17181C;
     private static final int FIELD = 0xFF0D0E11;
@@ -68,8 +66,8 @@ public class VisualsScreen extends Screen {
     private record Nav(String name, int icon, Runnable action) {}
 
     /** type 0 = section title, 1 = module row, 2 = option row. */
-    private record Cell(int type, int x, int y, int w, int h, Module module, Setting setting,
-                        String key, String title, int index, int drawerH) {}
+    private record Cell(int type, float x, float y, float w, float h, Module module, Setting setting,
+                        String key, String title, int index, float drawerH, float offset) {}
 
     private final List<Nav> manage = List.of(
             new Nav("Позиции HUD", 4, () -> Minecraft.getInstance().gui.setScreen(new HudEditor())),
@@ -79,7 +77,8 @@ public class VisualsScreen extends Screen {
             }));
 
     private int catIndex = savedCategory;
-    private int scroll;
+    private float scrollTarget;
+    private float scroll;
     private int mX, mY;
     private boolean searchFocused;
     private String search = "";
@@ -87,30 +86,35 @@ public class VisualsScreen extends Screen {
     private float open;
     private float appear;
     private float navSelY = -1000f;
-    private int contentHeight;
+    private float contentHeight;
+    private Setting dragging;
     private final Map<Module, Float> toggleAnim = new HashMap<>();
     private final Map<Module, Float> hoverAnim = new HashMap<>();
     private final Map<Module, Float> openAnim = new HashMap<>();
     private final Map<Setting, Float> settingAnim = new HashMap<>();
-    private final float[] navHover = new float[8];
+    private final Map<Setting, Float> sliderAnim = new HashMap<>();
+    private final float[] navHover = new float[10];
 
-    private int x0, y0, w, h, topY, sbW, contentX, contentW, listTop, listBottom;
+    private int x0, y0, w, h, sbW, contentX, contentW;
+    private float topY, listTop, listBottom;
 
     public VisualsScreen() {
         super(Component.literal("CocoVis"));
     }
 
-    private static float approach(float cur, float target, float step) {
-        return cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step);
+    /** Frame-rate independent exponential smoothing. */
+    private static float smooth(float cur, float target, float dt, float speed) {
+        float next = cur + (target - cur) * (1f - (float) Math.exp(-dt * speed));
+        return Math.abs(target - next) < 0.0015f ? target : next;
     }
 
     private static float clamp01(float v) {
         return Math.max(0f, Math.min(1f, v));
     }
 
-    private float ease() {
-        float t = 1f - open;
-        return 1f - t * t * t;
+    private static float easeOut(float t) {
+        float u = 1f - clamp01(t);
+        return 1f - u * u * u;
     }
 
     private void layout(int sw, int sh) {
@@ -118,7 +122,7 @@ public class VisualsScreen extends Screen {
         h = Math.max(260, Math.min(sh - 70, 350));
         x0 = (sw - w) / 2;
         y0 = (sh - h) / 2;
-        topY = y0 + Math.round((1f - ease()) * 10f);
+        topY = y0;
         sbW = Math.max(118, Math.min(148, w / 4));
         contentX = x0 + sbW + 14;
         contentW = w - sbW - 28;
@@ -126,7 +130,7 @@ public class VisualsScreen extends Screen {
         listBottom = topY + h - 10;
     }
 
-    private String fit(Font font, String s, int maxW) {
+    private String fit(Font font, String s, float maxW) {
         if (maxW <= 0) {
             return "";
         }
@@ -139,9 +143,9 @@ public class VisualsScreen extends Screen {
         return s + "…";
     }
 
-    private void scaled(GuiGraphicsExtractor g, Font font, String text, int x, int y, float scale, int color, boolean title) {
+    private void scaled(GuiGraphicsExtractor g, Font font, String text, float x, float y, float scale, int color, boolean title) {
         g.pose().pushMatrix();
-        g.pose().translate((float) x, (float) y);
+        g.pose().translate(x, y);
         g.pose().scale(scale, scale);
         if (title) {
             Ui.title(g, font, text, 0, 0, color);
@@ -152,7 +156,7 @@ public class VisualsScreen extends Screen {
     }
 
     /** Vector-style nav icons built from smooth shapes (12x12 box). */
-    private void drawNavIcon(GuiGraphicsExtractor g, int kind, int x, int y, int color) {
+    private void drawNavIcon(GuiGraphicsExtractor g, int kind, float x, float y, int color) {
         switch (kind) {
             case 0 -> { // person
                 Ui.circle(g, x + 3, y, 6, color);
@@ -172,6 +176,13 @@ public class VisualsScreen extends Screen {
             case 4 -> { // move: plus
                 Ui.roundFill(g, x + 5, y, 2, 12, 1, color);
                 Ui.roundFill(g, x, y + 5, 12, 2, 1, color);
+            }
+            case 6 -> { // sun: disc with rays
+                Ui.circle(g, x + 2.5f, y + 2.5f, 7, color);
+                Ui.roundFill(g, x + 5.2f, y - 0.5f, 1.6f, 2.4f, 0.8f, color);
+                Ui.roundFill(g, x + 5.2f, y + 10.1f, 1.6f, 2.4f, 0.8f, color);
+                Ui.roundFill(g, x - 0.5f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
+                Ui.roundFill(g, x + 10.1f, y + 5.2f, 2.4f, 1.6f, 0.8f, color);
             }
             default -> { // reset: ring with a tip
                 Ui.ring(g, x, y + 1, 11, color);
@@ -211,33 +222,44 @@ public class VisualsScreen extends Screen {
         return openAnim.getOrDefault(m, 0f);
     }
 
+    private static float optionsHeight(Module m) {
+        float total = 0f;
+        for (Setting s : m.options) {
+            total += s.height();
+        }
+        return total;
+    }
+
     /** Positions of every section title, module row and option row (shared by drawing and clicks). */
     private List<Cell> cells() {
         List<Cell> cells = new ArrayList<>();
-        int colW = (contentW - COL_GAP) / 2;
-        int[] colY = {0, 0};
+        float colW = (contentW - COL_GAP) / 2f;
+        float[] colY = {0f, 0f};
         int stagger = 0;
         for (ModuleManager.Section section : activeSections()) {
             int col = colY[1] < colY[0] ? 1 : 0;
-            int x = contentX + col * (colW + COL_GAP);
+            float x = contentX + col * (colW + COL_GAP);
             String key = catIndex + ":" + section.title();
             boolean collapsed = COLLAPSED.contains(key);
-            int y = listTop + colY[col] - scroll;
-            int used = 0;
+            float y = listTop + colY[col] - scroll;
+            float used = 0f;
             if (!section.title().isEmpty()) {
-                cells.add(new Cell(0, x, y, colW, TITLE_H, null, null, key, section.title(), stagger++, 0));
+                cells.add(new Cell(0, x, y, colW, TITLE_H, null, null, key, section.title(), stagger++, 0f, 0f));
                 used += TITLE_H;
             }
             if (!collapsed) {
                 for (Module module : section.modules()) {
                     float a = openOf(module);
-                    int drawerH = Math.round(module.options.size() * SET_H * a);
+                    float drawerH = optionsHeight(module) * a;
                     int idx = stagger++;
-                    cells.add(new Cell(1, x, y + used, colW, ROW_H, module, null, key, "", idx, drawerH));
+                    cells.add(new Cell(1, x, y + used, colW, ROW_H, module, null, key, "", idx, drawerH, 0f));
                     if (a > 0.01f) {
+                        float off = 0f;
                         for (int i = 0; i < module.options.size(); i++) {
-                            cells.add(new Cell(2, x, y + used + ROW_H + i * SET_H, colW, SET_H, module,
-                                    module.options.get(i), key, "", i, drawerH));
+                            Setting s = module.options.get(i);
+                            cells.add(new Cell(2, x, y + used + ROW_H + off, colW, s.height(), module, s, key, "",
+                                    i, drawerH, off));
+                            off += s.height();
                         }
                     }
                     used += ROW_H + drawerH;
@@ -245,24 +267,24 @@ public class VisualsScreen extends Screen {
             }
             colY[col] += used + SECTION_GAP;
         }
-        contentHeight = Math.max(0, Math.max(colY[0], colY[1]) - SECTION_GAP);
+        contentHeight = Math.max(0f, Math.max(colY[0], colY[1]) - SECTION_GAP);
         return cells;
     }
 
-    private int maxScroll() {
-        return Math.max(0, contentHeight - Math.max(1, listBottom - listTop));
+    private float maxScroll() {
+        return Math.max(0f, contentHeight - Math.max(1f, listBottom - listTop));
     }
 
-    private int navTop() {
+    private float navTop() {
         return topY + 66;
     }
 
-    private int manageTop() {
+    private float manageTop() {
         return navTop() + ModuleManager.CATEGORIES.size() * (NAV_H + NAV_GAP) + 24;
     }
 
     private float stagger(int index) {
-        float t = clamp01((appear - index * 0.09f) / 0.35f);
+        float t = clamp01((appear - index * 0.09f) / 0.4f);
         return t * t * (3f - 2f * t);
     }
 
@@ -273,11 +295,11 @@ public class VisualsScreen extends Screen {
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
         long now = System.nanoTime();
-        float dt = Math.min(0.1f, (now - lastNs) / 1_000_000_000f);
+        float dt = Math.min(0.05f, (now - lastNs) / 1_000_000_000f);
         lastNs = now;
-        open = approach(open, 1f, dt * 6f);
-        appear = Math.min(12f, appear + dt * 2.4f);
-        float e = ease();
+        open = smooth(open, 1f, dt, 11f);
+        appear = Math.min(14f, appear + dt * 2.6f);
+        float e = easeOut(open);
 
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
@@ -285,38 +307,59 @@ public class VisualsScreen extends Screen {
 
         for (ModuleManager.Category category : ModuleManager.CATEGORIES) {
             for (Module m : category.modules()) {
-                openAnim.put(m, approach(openOf(m), EXPANDED.contains(m.name) ? 1f : 0f, dt * 7f));
+                openAnim.put(m, smooth(openOf(m), EXPANDED.contains(m.name) ? 1f : 0f, dt, 12f));
+            }
+        }
+        scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
+        scroll = smooth(scroll, scrollTarget, dt, 16f);
+
+        // slider drag: follows the mouse while the button is held (released in mouseReleased)
+        if (dragging != null) {
+            float trackX = contentX + 0f;
+            for (Cell c : cells()) {
+                if (c.type() == 2 && c.setting() == dragging) {
+                    float tx = c.x() + 14;
+                    float tw = c.w() - 28;
+                    dragging.setFraction((mX - tx) / tw);
+                    break;
+                }
             }
         }
 
         g.fill(0, 0, sw, sh, Ui.fade(0xFF000000, 0.55f * e));
+
+        // window pops in from the centre
+        float pop = 0.955f + 0.045f * e;
+        g.pose().pushMatrix();
+        g.pose().translate(x0 + w / 2f, y0 + h / 2f);
+        g.pose().scale(pop, pop);
+        g.pose().translate(-(x0 + w / 2f), -(y0 + h / 2f));
+
         Ui.shadow(g, x0, topY, w, h, 6);
         Ui.roundFill(g, x0, topY, w, h, 6, BG);
         Ui.roundGradient(g, x0 + 1, topY + 1, sbW - 1, 46, 5, Ui.fade(BLUE, 0.11f), Ui.fade(BLUE, 0f));
         Ui.roundOutline(g, x0, topY, w, h, 6, DIVIDER);
         int half = (w - 40) / 2;
-        Ui.hBar(g, x0 + 20, topY, half, 1, Ui.fade(BLUE, 0f), Ui.fade(BLUE, 0.9f));
-        Ui.hBar(g, x0 + 20 + half, topY, w - 40 - half, 1, Ui.fade(BLUE, 0.9f), Ui.fade(BLUE, 0f));
+        Ui.hBar(g, x0 + 20, Math.round(topY), half, 1, Ui.fade(BLUE, 0f), Ui.fade(BLUE, 0.9f));
+        Ui.hBar(g, x0 + 20 + half, Math.round(topY), w - 40 - half, 1, Ui.fade(BLUE, 0.9f), Ui.fade(BLUE, 0f));
 
         // ---------- sidebar ----------
         int logoW = Math.round(Ui.titleWidth(font, "CocoVis") * 1.4f);
-        scaled(g, font, "CocoVis", x0 + (sbW - logoW) / 2, topY + 15, 1.4f, BLUE, true);
-        g.fill(x0 + 1, topY + 42, x0 + sbW, topY + 43, DIVIDER);
-        g.fill(x0 + sbW, topY + 1, x0 + sbW + 1, topY + h - 1, DIVIDER);
+        scaled(g, font, "CocoVis", x0 + (sbW - logoW) / 2f, topY + 15, 1.4f, BLUE, true);
+        Ui.rect(g, x0 + 1, topY + 42, sbW - 1, 1, DIVIDER);
+        Ui.rect(g, x0 + sbW, topY + 1, 1, h - 2, DIVIDER);
 
         scaled(g, font, "ФУНКЦИИ", x0 + 12, topY + 52, 0.8f, MUTED, false);
 
-        // animated selection plate
         float targetSel = navTop() + catIndex * (NAV_H + NAV_GAP);
         if (navSelY < -500f) {
             navSelY = targetSel;
         }
-        navSelY += (targetSel - navSelY) * Math.min(1f, dt * 16f);
+        navSelY = smooth(navSelY, targetSel, dt, 18f);
         if (search.isEmpty()) {
-            int selY = Math.round(navSelY);
-            Ui.roundFill(g, x0 + 7, selY, sbW - 14, NAV_H, 7, NAV_SEL_BG);
-            Ui.roundOutline(g, x0 + 7, selY, sbW - 14, NAV_H, 7, NAV_SEL_LINE);
-            g.fill(x0 + 7, selY + 7, x0 + 9, selY + NAV_H - 7, BLUE);
+            Ui.roundFill(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_BG);
+            Ui.roundOutline(g, x0 + 7, navSelY, sbW - 14, NAV_H, 7, NAV_SEL_LINE);
+            Ui.rect(g, x0 + 7, navSelY + 7, 2, NAV_H - 14, BLUE);
         }
         for (int i = 0; i < ModuleManager.CATEGORIES.size(); i++) {
             ModuleManager.Category category = ModuleManager.CATEGORIES.get(i);
@@ -327,12 +370,11 @@ public class VisualsScreen extends Screen {
         for (int i = 0; i < manage.size(); i++) {
             Nav nav = manage.get(i);
             drawNav(g, font, nav.name(), nav.icon(), x0 + 7, manageTop() + i * (NAV_H + NAV_GAP),
-                    sbW - 14, false, 4 + i, dt);
+                    sbW - 14, false, 6 + i, dt);
         }
 
-        // profile footer
-        int fy = topY + h - 36;
-        g.fill(x0 + 1, fy - 7, x0 + sbW, fy - 6, DIVIDER);
+        float fy = topY + h - 36;
+        Ui.rect(g, x0 + 1, fy - 7, sbW - 1, 1, DIVIDER);
         Ui.roundFill(g, x0 + 11, fy, 22, 22, 11, 0xFF1B1C22);
         Ui.roundOutline(g, x0 + 10, fy - 1, 24, 24, 12, Ui.fade(BLUE, 0.45f));
         Ui.text(g, font, "?", x0 + 19, fy + 7, 0xFF7A7F8A, false);
@@ -341,7 +383,7 @@ public class VisualsScreen extends Screen {
         Ui.text(g, font, "CocoVis " + VERSION, x0 + 40, fy + 12, MUTED, false);
 
         // ---------- search ----------
-        int sy = topY + 9;
+        float sy = topY + 9;
         Ui.roundFill(g, contentX, sy, contentW, 24, 6, FIELD);
         Ui.roundOutline(g, contentX, sy, contentW, 24, 6, searchFocused ? 0xFF3A4668 : FIELD_LINE);
         int mc0 = searchFocused ? BLUE : MUTED;
@@ -353,26 +395,25 @@ public class VisualsScreen extends Screen {
             Ui.text(g, font, fit(font, search, contentW - 42), contentX + 26, sy + 8, TEXT, false);
         }
         if (searchFocused && (System.currentTimeMillis() / 500) % 2 == 0) {
-            int cx = contentX + 26 + (search.isEmpty() ? 0 : Ui.width(font, fit(font, search, contentW - 42)));
-            g.fill(cx + 1, sy + 6, cx + 2, sy + 18, TEXT);
+            float cx = contentX + 26 + (search.isEmpty() ? 0 : Ui.width(font, fit(font, search, contentW - 42)));
+            Ui.rect(g, cx + 1, sy + 6, 1, 12, TEXT);
         }
 
         // ---------- columns ----------
         cells();
-        scroll = Math.max(0, Math.min(scroll, maxScroll()));
+        scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
         List<Cell> cells = cells();
 
-        int colW = (contentW - COL_GAP) / 2;
-        g.enableScissor(contentX - 2, listTop, contentX + contentW + 2, listBottom);
-        int dividerX = contentX + colW + COL_GAP / 2;
-        g.fill(dividerX, listTop, dividerX + 1, listBottom, DIVIDER);
+        float colW = (contentW - COL_GAP) / 2f;
+        g.enableScissor(contentX - 2, Math.round(listTop), contentX + contentW + 2, Math.round(listBottom));
+        Ui.rect(g, contentX + colW + COL_GAP / 2f, listTop, 1, listBottom - listTop, DIVIDER);
         Module hovered = null;
         for (Cell cell : cells) {
             if (cell.y() + cell.h() < listTop || cell.y() > listBottom) {
                 continue;
             }
-            float af = stagger(cell.type() == 2 ? cell.index() : cell.index());
-            int slide = Math.round((1f - af) * 5f);
+            float af = stagger(cell.type() == 2 ? 0 : cell.index());
+            float slide = (1f - af) * 5f;
             if (cell.type() == 0) {
                 drawTitle(g, font, cell, af, slide);
             } else if (cell.type() == 1) {
@@ -388,141 +429,161 @@ public class VisualsScreen extends Screen {
         }
         g.disableScissor();
 
-        int max = maxScroll();
-        if (max > 0) {
-            int trackH = listBottom - listTop;
-            int thumbH = Math.max(18, trackH * trackH / (trackH + max));
-            int thumbY = listTop + Math.round((trackH - thumbH) * (scroll / (float) max));
-            g.fill(contentX + contentW + 7, thumbY, contentX + contentW + 8, thumbY + thumbH, 0xFF3A3D46);
+        float max = maxScroll();
+        if (max > 0.5f) {
+            float trackH = listBottom - listTop;
+            float thumbH = Math.max(18f, trackH * trackH / (trackH + max));
+            float thumbY = listTop + (trackH - thumbH) * (scroll / max);
+            Ui.roundFill(g, contentX + contentW + 7, thumbY, 2, thumbH, 1, 0xFF3A3D46);
         }
 
         if (hovered != null) {
             drawTooltip(g, font, hovered.description(), sw);
         }
+        g.pose().popMatrix();
     }
 
-    private void drawNav(GuiGraphicsExtractor g, Font font, String name, int icon, int x, int y, int w,
+    private void drawNav(GuiGraphicsExtractor g, Font font, String name, int icon, float x, float y, float w,
                          boolean selected, int hoverIndex, float dt) {
         boolean hover = Ui.inside(mX, mY, x, y, w, NAV_H);
-        navHover[hoverIndex] = approach(navHover[hoverIndex], hover ? 1f : 0f, dt * 9f);
+        navHover[hoverIndex] = smooth(navHover[hoverIndex], hover ? 1f : 0f, dt, 14f);
         if (!selected && navHover[hoverIndex] > 0.01f) {
             Ui.roundFill(g, x, y, w, NAV_H, 7, Ui.fade(0xFF111218, navHover[hoverIndex]));
         }
         drawNavIcon(g, icon, x + 11, y + 7, selected ? BLUE : NAV_TEXT);
-        Ui.text(g, font, fit(font, name, w - 38), x + 29, y + (NAV_H - 8) / 2, selected ? TEXT : NAV_TEXT, false);
+        Ui.text(g, font, fit(font, name, w - 38), x + 29, y + (NAV_H - 8) / 2f, selected ? TEXT : NAV_TEXT, false);
     }
 
-    private void drawTitle(GuiGraphicsExtractor g, Font font, Cell cell, float af, int slide) {
+    private void drawTitle(GuiGraphicsExtractor g, Font font, Cell cell, float af, float slide) {
         boolean collapsed = COLLAPSED.contains(cell.key());
-        int y = cell.y() + slide;
+        float y = cell.y() + slide;
         Ui.title(g, font, cell.title(), cell.x(), y + 7, Ui.fade(BLUE, af));
         if (collapsed) {
             Ui.triangleRight(g, cell.x() + cell.w() - 12, y + 8, 4, 7, MUTED);
         } else {
             Ui.triangleDown(g, cell.x() + cell.w() - 13, y + 10, 7, 4, MUTED);
         }
-        g.fill(cell.x(), cell.y() + TITLE_H - 2, cell.x() + cell.w(), cell.y() + TITLE_H - 1, DIVIDER);
+        Ui.rect(g, cell.x(), cell.y() + TITLE_H - 2, cell.w(), 1, DIVIDER);
     }
 
     private boolean hasDots(Module m) {
         return !m.options.isEmpty();
     }
 
-    private int dotsX(Cell cell) {
+    private float dotsX(Cell cell) {
         return cell.x() + cell.w() - TOG_W - 10 - 26;
     }
 
-    private void drawRow(GuiGraphicsExtractor g, Font font, Cell cell, boolean hover, float dt, float af, int slide) {
+    private void drawRow(GuiGraphicsExtractor g, Font font, Cell cell, boolean hover, float dt, float af, float slide) {
         Module module = cell.module();
-        float hv = approach(hoverAnim.getOrDefault(module, 0f), hover ? 1f : 0f, dt * 9f);
+        float hv = smooth(hoverAnim.getOrDefault(module, 0f), hover ? 1f : 0f, dt, 14f);
         hoverAnim.put(module, hv);
         boolean enabled = module.isEnabled();
         float oa = openOf(module);
-        int x = cell.x();
-        int y = cell.y() + slide;
-        int rw = cell.w();
+        float x = cell.x();
+        float y = cell.y() + slide;
+        float rw = cell.w();
         if (hv > 0.01f) {
             Ui.roundFill(g, x, y, rw, ROW_H - 1, 4, Ui.fade(ROW_HOT, hv * af));
         }
-        if (oa > 0.01f && cell.drawerH() > 0) {
-            Ui.roundFill(g, x + 3, y + ROW_H - 2, rw - 3, cell.drawerH() + 2, 5, Ui.fade(DRAWER, oa));
-            g.fill(x + 3, y + ROW_H + 4, x + 4, y + ROW_H + cell.drawerH() - 4, Ui.fade(BLUE, 0.5f * oa));
+        if (oa > 0.005f && cell.drawerH() > 0.5f) {
+            Ui.roundFill(g, x + 3, y + ROW_H - 2, rw - 3, cell.drawerH() + 2, 5, Ui.fade(DRAWER, Math.min(1f, oa * 1.6f)));
+            if (cell.drawerH() > 10f) {
+                Ui.rect(g, x + 3, y + ROW_H + 4, 1, cell.drawerH() - 8, Ui.fade(BLUE, 0.5f * oa));
+            }
         }
-        g.fill(x, cell.y() + ROW_H - 1, x + rw, cell.y() + ROW_H, Ui.fade(DIVIDER, af));
+        Ui.rect(g, x, cell.y() + ROW_H - 1, rw, 1, Ui.fade(DIVIDER, af));
 
-        int tx = x + rw - TOG_W - 10;
-        int ty = y + (ROW_H - TOG_H) / 2;
-        int textMax = tx - (hasDots(module) ? 28 : 0) - (x + 10) - 6;
-        Ui.text(g, font, fit(font, module.name, textMax), x + 10, y + (ROW_H - 8) / 2,
+        float tx = x + rw - TOG_W - 10;
+        float ty = y + (ROW_H - TOG_H) / 2f;
+        float textMax = tx - (hasDots(module) ? 28 : 0) - (x + 10) - 6;
+        Ui.text(g, font, fit(font, module.name, textMax), x + 10, y + (ROW_H - 8) / 2f,
                 Ui.fade(enabled ? TEXT : ROW_TEXT, af), false);
 
         if (hasDots(module)) {
             boolean dh = Ui.inside(mX, mY, dotsX(cell), cell.y(), 24, ROW_H);
             int dc = oa > 0.5f ? BLUE : dh ? TEXT : MUTED;
             for (int d = 0; d < 3; d++) {
-                Ui.circle(g, dotsX(cell) + 2 + d * 6, y + ROW_H / 2 - 1, 3, Ui.fade(dc, af));
+                Ui.circle(g, dotsX(cell) + 2 + d * 6, y + ROW_H / 2f - 1, 3, Ui.fade(dc, af));
             }
         }
 
-        float ta = approach(toggleAnim.getOrDefault(module, enabled ? 1f : 0f), enabled ? 1f : 0f, dt * 11f);
+        float ta = smooth(toggleAnim.getOrDefault(module, enabled ? 1f : 0f), enabled ? 1f : 0f, dt, 16f);
         toggleAnim.put(module, ta);
         if (ta > 0.02f) {
             Ui.roundFill(g, tx - 2, ty - 2, TOG_W + 4, TOG_H + 4, 8, Ui.fade(TOG_ON, 0.20f * ta * af));
         }
         Ui.roundFill(g, tx, ty, TOG_W, TOG_H, 6, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, ta), af));
-        int kx = tx + 2 + Math.round(ta * (TOG_W - 13));
+        float kx = tx + 2 + ta * (TOG_W - 13);
         Ui.roundFill(g, kx, ty + 2, 9, 9, 4, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, ta), af));
     }
 
     private void drawOption(GuiGraphicsExtractor g, Font font, Cell cell, float dt) {
         Setting s = cell.setting();
         float oa = openOf(cell.module());
-        float vis = clamp01((cell.drawerH() - cell.index() * SET_H) / (float) SET_H) * oa;
-        if (vis < 0.05f) {
+        float vis = clamp01((cell.drawerH() - cell.offset()) / Math.max(1f, cell.h())) * oa;
+        if (vis < 0.04f) {
             return;
         }
-        int x = cell.x();
-        int y = cell.y();
-        int rw = cell.w();
-        boolean hover = mY >= listTop && mY < listBottom && Ui.inside(mX, mY, x, y, rw, SET_H);
-        if (hover) {
-            Ui.roundFill(g, x + 6, y, rw - 8, SET_H - 1, 4, Ui.fade(0xFF12131A, vis));
+        float x = cell.x();
+        float y = cell.y();
+        float rw = cell.w();
+        float rh = cell.h();
+        boolean hover = mY >= listTop && mY < listBottom && Ui.inside(mX, mY, x, y, rw, rh);
+        if (hover && s.kind != Setting.Kind.SLIDER) {
+            Ui.roundFill(g, x + 6, y, rw - 8, rh - 1, 4, Ui.fade(0xFF12131A, vis));
         }
         int label = hover ? TEXT : NAV_TEXT;
-        Ui.text(g, font, fit(font, s.name, rw - 90), x + 14, y + (SET_H - 8) / 2, Ui.fade(label, vis), false);
-        int right = x + rw - 10;
+        float right = x + rw - 10;
+        float labelY = s.kind == Setting.Kind.SLIDER ? y + 5 : y + (rh - 8) / 2f;
+        Ui.text(g, font, fit(font, s.name, rw - 90), x + 14, labelY, Ui.fade(label, vis), false);
         switch (s.kind) {
             case TOGGLE -> {
                 boolean on = s.isOn();
-                float a = approach(settingAnim.getOrDefault(s, on ? 1f : 0f), on ? 1f : 0f, dt * 11f);
+                float a = smooth(settingAnim.getOrDefault(s, on ? 1f : 0f), on ? 1f : 0f, dt, 16f);
                 settingAnim.put(s, a);
-                int sw = 22;
-                int sh = 11;
-                int sx = right - sw;
-                int sy = y + (SET_H - sh) / 2;
-                Ui.roundFill(g, sx, sy, sw, sh, 5, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, a), vis));
-                Ui.roundFill(g, sx + 2 + Math.round(a * (sw - 11)), sy + 2, 7, 7, 3,
-                        Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, a), vis));
+                float sx = right - 22;
+                float sy = y + (rh - 11) / 2f;
+                Ui.roundFill(g, sx, sy, 22, 11, 5, Ui.fade(Ui.mix(TOG_OFF, TOG_ON, a), vis));
+                Ui.roundFill(g, sx + 2 + a * 11, sy + 2, 7, 7, 3, Ui.fade(Ui.mix(KNOB_OFF, 0xFFFFFFFF, a), vis));
             }
             case CYCLE -> {
                 String v = s.valueText();
-                int pw = Ui.width(font, v) + 18;
-                int px = right - pw;
-                int py = y + (SET_H - 16) / 2;
+                float pw = Ui.width(font, v) + 18;
+                float px = right - pw;
+                float py = y + (rh - 16) / 2f;
                 Ui.roundFill(g, px, py, pw, 16, 5, Ui.fade(FIELD, vis));
                 Ui.roundOutline(g, px, py, pw, 16, 5, Ui.fade(hover ? BLUE : FIELD_LINE, vis));
                 Ui.text(g, font, v, px + 9, py + 4, Ui.fade(BLUE, vis), false);
             }
-            case ACTION -> Ui.triangleRight(g, right - 5, y + (SET_H - 7) / 2, 4, 7,
+            case SLIDER -> {
+                float f = smooth(sliderAnim.getOrDefault(s, s.fraction()), s.fraction(), dt, dragging == s ? 40f : 20f);
+                sliderAnim.put(s, f);
+                String v = s.valueText();
+                Ui.text(g, font, v, right - Ui.width(font, v), labelY, Ui.fade(TEXT, vis), false);
+                float tx = x + 14;
+                float tw = rw - 28;
+                float ty = y + 22;
+                Ui.roundFill(g, tx, ty, tw, 4, 2, Ui.fade(0xFF22232A, vis));
+                if (f > 0.001f) {
+                    Ui.roundFill(g, tx, ty, Math.max(4f, tw * f), 4, 2, Ui.fade(Ui.mix(TOG_ON, BLUE, f), vis));
+                }
+                float glow = dragging == s ? 0.35f : hover ? 0.2f : 0f;
+                if (glow > 0f) {
+                    Ui.circle(g, tx + tw * f - 8, ty + 2 - 8, 16, Ui.fade(BLUE, glow * vis));
+                }
+                Ui.circle(g, tx + tw * f - 5, ty + 2 - 5, 10, Ui.fade(0xFFFFFFFF, vis));
+            }
+            case ACTION -> Ui.triangleRight(g, right - 5, y + (rh - 7) / 2f, 4, 7,
                     Ui.fade(hover ? BLUE : MUTED, vis));
         }
     }
 
     private void drawTooltip(GuiGraphicsExtractor g, Font font, String text, int sw) {
         String t = fit(font, text, 240);
-        int tw = Ui.width(font, t) + 14;
-        int tx = Math.min(mX + 12, sw - tw - 4);
-        int ty = mY + 14;
+        float tw = Ui.width(font, t) + 14;
+        float tx = Math.min(mX + 12, sw - tw - 4);
+        float ty = mY + 14;
         Ui.roundFill(g, tx, ty, tw, 18, 5, 0xF0101114);
         Ui.roundOutline(g, tx, ty, tw, 18, 5, 0xFF2A2C34);
         Ui.text(g, font, t, tx + 7, ty + 5, ROW_TEXT, false);
@@ -534,7 +595,7 @@ public class VisualsScreen extends Screen {
             if (Ui.inside(mX, mY, x0 + 7, navTop() + i * (NAV_H + NAV_GAP), sbW - 14, NAV_H)) {
                 catIndex = i;
                 savedCategory = i;
-                scroll = 0;
+                scrollTarget = 0f;
                 search = "";
                 searchFocused = false;
                 appear = 0f;
@@ -565,7 +626,13 @@ public class VisualsScreen extends Screen {
                     return true;
                 }
                 if (cell.type() == 2) {
-                    cell.setting().click();
+                    Setting s = cell.setting();
+                    if (s.kind == Setting.Kind.SLIDER) {
+                        dragging = s;
+                        s.setFraction((mX - (cell.x() + 14)) / (cell.w() - 28));
+                    } else {
+                        s.click();
+                    }
                     return true;
                 }
                 Module module = cell.module();
@@ -583,11 +650,20 @@ public class VisualsScreen extends Screen {
     }
 
     @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (dragging != null) {
+            dragging = null;
+            return true;
+        }
+        return super.mouseReleased(event);
+    }
+
+    @Override
     public boolean charTyped(CharacterEvent event) {
         String typed = event.codepointAsString();
         if (searchFocused && event.isAllowedChatCharacter()) {
             search += typed;
-            scroll = 0;
+            scrollTarget = 0f;
             appear = 0f;
             return true;
         }
@@ -609,7 +685,7 @@ public class VisualsScreen extends Screen {
             if (!search.isEmpty()) {
                 search = search.substring(0, search.length() - 1);
             }
-            scroll = 0;
+            scrollTarget = 0f;
             return true;
         }
         if (searchFocused && event.key() == 257) {
@@ -621,7 +697,7 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.round(scrollY * 22)));
+        scrollTarget = Math.max(0f, Math.min(maxScroll(), scrollTarget - (float) (scrollY * 26)));
         return true;
     }
 

@@ -15,7 +15,7 @@ public final class ModuleManager {
     /** A titled group of modules (one block in the two-column layout). */
     public record Section(String title, List<Module> modules) {}
 
-    /** icon: 0 person, 1 diamond, 2 grid, 3 eye. */
+    /** icon: 0 person, 1 diamond, 2 grid, 3 eye, 6 sun. */
     public record Category(String name, String subtitle, int icon, List<Section> sections) {
         public List<Module> modules() {
             List<Module> all = new ArrayList<>();
@@ -86,6 +86,34 @@ public final class ModuleManager {
             .with(flag("Цены в подсказках", c -> c.showTooltips, (c, v) -> c.showTooltips = v))
             .with(position());
 
+    // ---------------- Мир ----------------
+    private static final int[] SKY_PRESETS = {-1, 0, 6000, 12000, 16000, 18000};
+
+    public static final Module SKY = new Module("Небо",
+            "Время суток только у вас на экране, сервер своё время не меняет",
+            () -> CocoVisConfig.get().skyEnabled, master((c, v) -> c.skyEnabled = v))
+            .with(Setting.cycle("Время суток", List.of("Своё", "Рассвет", "День", "Закат", "Ночь", "Полночь"),
+                    () -> {
+                        int t = CocoVisConfig.get().skyTime;
+                        for (int i = 1; i < SKY_PRESETS.length; i++) {
+                            if (SKY_PRESETS[i] == t) {
+                                return i;
+                            }
+                        }
+                        return 0;
+                    }, i -> {
+                        if (i > 0) {
+                            CocoVisConfig.get().skyTime = SKY_PRESETS[i];
+                            CocoVisConfig.save();
+                        }
+                    }))
+            .with(Setting.slider("Время", 0, 24000, 100,
+                    () -> CocoVisConfig.get().skyTime, v -> {
+                        CocoVisConfig.get().skyTime = v;
+                        CocoVisConfig.save();
+                    }))
+            .with(flag("Реальное время", c -> c.skyRealTime, (c, v) -> c.skyRealTime = v));
+
     // ---------------- Графика ----------------
     public static final Module MOTION_BLUR = new Module("Размытие движения",
             "Плавное размытие при движении камеры (Motion Blur)",
@@ -101,6 +129,8 @@ public final class ModuleManager {
             new Category("Экран", "Информация на экране", 2, List.of(
                     new Section("Панели", List.of(INFO, EFFECTS)),
                     new Section("Экономика", List.of(DIAMONDS)))),
+            new Category("Мир", "Небо и время суток", 6, List.of(
+                    new Section("Окружение", List.of(SKY)))),
             new Category("Графика", "Эффекты и картинка", 3, List.of(
                     new Section("Постобработка", List.of(MOTION_BLUR)))));
 
