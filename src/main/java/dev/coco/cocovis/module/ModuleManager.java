@@ -12,25 +12,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class ModuleManager {
-    /** A titled group of modules (one block in the two-column layout). */
     public record Section(String title, List<Module> modules) {}
 
-    /** icon: 0 person, 1 diamond, 2 grid, 3 eye, 6 sun. */
     public record Category(String name, String subtitle, int icon, List<Section> sections) {
         public List<Module> modules() {
             List<Module> all = new ArrayList<>();
-            for (Section section : sections) {
-                all.addAll(section.modules());
-            }
+            for (Section section : sections) all.addAll(section.modules());
             return all;
         }
     }
 
     private static Consumer<Boolean> master(BiConsumer<CocoVisConfig, Boolean> set) {
-        return v -> {
-            set.accept(CocoVisConfig.get(), v);
-            CocoVisConfig.save();
-        };
+        return v -> { set.accept(CocoVisConfig.get(), v); CocoVisConfig.save(); };
     }
 
     private static Setting flag(String name, Function<CocoVisConfig, Boolean> get, BiConsumer<CocoVisConfig, Boolean> set) {
@@ -88,31 +81,37 @@ public final class ModuleManager {
 
     // ---------------- Мир ----------------
     private static final int[] SKY_PRESETS = {-1, 0, 6000, 12000, 16000, 18000};
+    private static final List<String> SKY_COLOR_MODES = List.of("Стандарт", "Neon", "Gradient", "Sunset", "Aurora", "Custom");
 
     public static final Module SKY = new Module("Небо",
-            "Время суток только у вас на экране, сервер своё время не меняет",
+            "Локальное время суток и окраска неба",
             () -> CocoVisConfig.get().skyEnabled, master((c, v) -> c.skyEnabled = v))
             .with(Setting.cycle("Время суток", List.of("Своё", "Рассвет", "День", "Закат", "Ночь", "Полночь"),
                     () -> {
                         int t = CocoVisConfig.get().skyTime;
-                        for (int i = 1; i < SKY_PRESETS.length; i++) {
-                            if (SKY_PRESETS[i] == t) {
-                                return i;
-                            }
-                        }
+                        for (int i = 1; i < SKY_PRESETS.length; i++) if (SKY_PRESETS[i] == t) return i;
                         return 0;
                     }, i -> {
-                        if (i > 0) {
-                            CocoVisConfig.get().skyTime = SKY_PRESETS[i];
-                            CocoVisConfig.save();
-                        }
+                        if (i > 0) { CocoVisConfig.get().skyTime = SKY_PRESETS[i]; CocoVisConfig.save(); }
                     }))
             .with(Setting.slider("Время", 0, 24000, 100,
                     () -> CocoVisConfig.get().skyTime, v -> {
                         CocoVisConfig.get().skyTime = v;
                         CocoVisConfig.save();
                     }))
-            .with(flag("Реальное время", c -> c.skyRealTime, (c, v) -> c.skyRealTime = v));
+            .with(flag("Реальное время", c -> c.skyRealTime, (c, v) -> c.skyRealTime = v))
+            .with(flag("Окраска неба", c -> c.skyColorEnabled, (c, v) -> c.skyColorEnabled = v))
+            .with(Setting.cycle("Стиль окраски", SKY_COLOR_MODES,
+                    () -> CocoVisConfig.get().skyColorMode, i -> {
+                        CocoVisConfig.get().skyColorMode = i;
+                        CocoVisConfig.save();
+                    }))
+            .with(Setting.slider("Сила цвета", 0, 100, 5,
+                    () -> CocoVisConfig.get().skyColorIntensity, v -> {
+                        CocoVisConfig.get().skyColorIntensity = v;
+                        CocoVisConfig.save();
+                    }))
+            .with(Setting.action("Изменить HEX", CocoVisConfig::openConfig));
 
     // ---------------- Графика ----------------
     public static final Module MOTION_BLUR = new Module("Размытие движения",
@@ -124,19 +123,12 @@ public final class ModuleManager {
             .with(Setting.action("Настройки размытия", MotionBlurBridge::openConfig));
 
     public static final List<Category> CATEGORIES = List.of(
-            new Category("Игроки", "Ники над головой", 0, List.of(
-                    new Section("Ники", List.of(NAMETAGS)))),
+            new Category("Игроки", "Ники над головой", 0, List.of(new Section("Ники", List.of(NAMETAGS)))),
             new Category("Экран", "Информация на экране", 2, List.of(
-                    new Section("Панели", List.of(INFO, EFFECTS)),
-                    new Section("Экономика", List.of(DIAMONDS)))),
-            new Category("Мир", "Небо и время суток", 6, List.of(
-                    new Section("Окружение", List.of(SKY)))),
-            new Category("Графика", "Эффекты и картинка", 3, List.of(
-                    new Section("Постобработка", List.of(MOTION_BLUR)))));
+                    new Section("Панели", List.of(INFO, EFFECTS)), new Section("Экономика", List.of(DIAMONDS)))),
+            new Category("Мир", "Небо и время суток", 6, List.of(new Section("Окружение", List.of(SKY)))),
+            new Category("Графика", "Эффекты и картинка", 3, List.of(new Section("Постобработка", List.of(MOTION_BLUR)))));
 
     private ModuleManager() {}
-
-    public static List<Category> all() {
-        return CATEGORIES;
-    }
+    public static List<Category> all() { return CATEGORIES; }
 }
