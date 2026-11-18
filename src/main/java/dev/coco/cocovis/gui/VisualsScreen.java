@@ -402,9 +402,7 @@ public class VisualsScreen extends Screen {
         }
 
         // ---------- columns ----------
-        scrollTarget = Math.max(0f, Math.min(scrollTarget, maxScroll()));
-        scroll = smooth(scroll, scrollTarget, dt, 16f);
-        frameCells = cells();
+        // Reuse frameCells built above; content height is refreshed once per frame.
 
         float colW = (contentW - COL_GAP) / 2f;
         g.enableScissor(contentX - 2, Math.round(listTop), contentX + contentW + 2, Math.round(listBottom));
