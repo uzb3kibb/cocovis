@@ -345,11 +345,11 @@ public class VisualsScreen extends Screen {
 
         float[] hsv = currentSkyHsv();
         // Hue ring: round samples form a continuous-looking outer circle.
-        for (int i = 0; i < 48; i++) {
-            float hue = i / 48f;
+        for (int i = 0; i < 32; i++) {
+            float hue = i / 32f;
             double a = hue * Math.PI * 2.0;
             float radius = skyWheelR * 0.84f;
-            float d = 7.5f;
+            float d = 9.5f;
             int rgb = Color.HSBtoRGB(hue, 1f, 1f);
             Ui.circle(g, cx + (float) Math.cos(a) * radius - d / 2f,
                     cy + (float) Math.sin(a) * radius - d / 2f, d, 0xFF000000 | (rgb & 0xFFFFFF));
@@ -357,9 +357,8 @@ public class VisualsScreen extends Screen {
 
         // Real inner saturation disk: vivid hue at the edge, fading smoothly to white.
         // Draw from outside inward so the centre remains a clean, light selection area.
-        int hueRgb = Color.HSBtoRGB(hsv[0], 1f, 1f) & 0xFFFFFF;
-        for (int i = 12; i >= 1; i--) {
-            float t = i / 12f;
+        for (int i = 8; i >= 1; i--) {
+            float t = i / 8f;
             float d = innerR * 2f * t;
             int rgb = Color.HSBtoRGB(hsv[0], t, 1f) & 0xFFFFFF;
             Ui.circle(g, cx - d / 2f, cy - d / 2f, d, 0xFF000000 | rgb);
