@@ -206,6 +206,67 @@ public final class Ui {
         roundFill(g, x - 1, y, w + 2, h + 3, r + 1, 0x14000000);
         roundFill(g, x - 2, y + 1, w + 4, h + 5, r + 2, 0x0C000000);
     }
+    
+    // Fast GUI-resolution primitives for frequently redrawn screens.
+    // Unlike the high-resolution rasterizer above, these issue one fill per GUI row,
+    // avoiding thousands of tiny real-pixel fill operations every frame.
+    public static void fastRoundGradient(GuiGraphicsExtractor g, float x, float y, float w, float h,
+                                         float radius, int top, int bottom) {
+        int ix = Math.round(x), iy = Math.round(y);
+        int iw = Math.max(1, Math.round(w)), ih = Math.max(1, Math.round(h));
+        int r = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
+        for (int row = 0; row < ih; row++) {
+            double inset = inset(r, ih, row);
+            int left = ix + (int) Math.ceil(inset);
+            int right = ix + iw - (int) Math.ceil(inset);
+            if (right > left) {
+                int color = top == bottom ? top : mix(top, bottom, row / (float) Math.max(1, ih - 1));
+                g.fill(left, iy + row, right, iy + row + 1, color);
+            }
+        }
+    }
+
+    public static void fastRoundFill(GuiGraphicsExtractor g, float x, float y, float w, float h,
+                                     float radius, int color) {
+        fastRoundGradient(g, x, y, w, h, radius, color, color);
+    }
+
+    public static void fastRoundOutline(GuiGraphicsExtractor g, float x, float y, float w, float h,
+                                        float radius, int color) {
+        int ix = Math.round(x), iy = Math.round(y);
+        int iw = Math.max(1, Math.round(w)), ih = Math.max(1, Math.round(h));
+        int r = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
+        int t = 1;
+        int innerW = iw - 2 * t, innerH = ih - 2 * t;
+        int innerR = Math.max(0, r - t);
+        for (int row = 0; row < ih; row++) {
+            double outer = inset(r, ih, row);
+            int left = ix + (int) Math.ceil(outer);
+            int right = ix + iw - (int) Math.ceil(outer);
+            if (row < t || row >= ih - t || innerW <= 0 || innerH <= 0) {
+                if (right > left) g.fill(left, iy + row, right, iy + row + 1, color);
+            } else {
+                double inner = inset(innerR, innerH, row - t);
+                int innerLeft = ix + t + (int) Math.ceil(inner);
+                int innerRight = ix + iw - t - (int) Math.ceil(inner);
+                if (innerLeft > left) g.fill(left, iy + row, innerLeft, iy + row + 1, color);
+                if (right > innerRight) g.fill(innerRight, iy + row, right, iy + row + 1, color);
+            }
+        }
+    }
+
+    public static void fastShadow(GuiGraphicsExtractor g, float x, float y, float w, float h, float r) {
+        fastRoundFill(g, x - 1, y, w + 2, h + 3, r + 1, 0x14000000);
+        fastRoundFill(g, x - 2, y + 1, w + 4, h + 5, r + 2, 0x0C000000);
+    }
+
+    public static void fastCircle(GuiGraphicsExtractor g, float x, float y, float d, int color) {
+        fastRoundFill(g, x, y, d, d, d / 2f, color);
+    }
+
+    public static void fastRing(GuiGraphicsExtractor g, float x, float y, float d, int color) {
+        fastRoundOutline(g, x, y, d, d, d / 2f, color);
+    }
 
     public static void panel(GuiGraphicsExtractor g, float x, float y, float w, float h) {
         shadow(g, x, y, w, h, 6);
