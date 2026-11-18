@@ -241,11 +241,11 @@ public class VisualsScreen extends Screen {
     /** Positions of every section title, module row and option row (shared by drawing and clicks). */
     private List<Cell> cells() {
         List<Cell> cells = new ArrayList<>();
-        float colW = (contentW - COL_GAP) / 2f;
+        float colW = skyPickerVisible() ? (contentW - COL_GAP) / 2f : (contentW - COL_GAP) / 2f;
         float[] colY = {0f, 0f};
         int stagger = 0;
         for (ModuleManager.Section section : activeSections()) {
-            int col = colY[1] < colY[0] ? 1 : 0;
+            int col = skyPickerVisible() ? 0 : (colY[1] < colY[0] ? 1 : 0);
             float x = contentX + col * (colW + COL_GAP);
             String key = catIndex + ":" + section.title();
             boolean collapsed = COLLAPSED.contains(key);
@@ -320,19 +320,16 @@ public class VisualsScreen extends Screen {
         Ui.title(g, font, "Цвет неба", left + 14, listTop + 17, TEXT);
         Ui.text(g, font, "Выбор оттенка", left + 14, listTop + 34, MUTED, false);
 
-        // Lightweight cached-shape approximation: 4 concentric rings x 36 hue samples.
-        // Avoids the old per-pixel wheel that issued thousands of draw calls every frame.
-        for (int ring = 0; ring < 4; ring++) {
-            float radius = skyWheelR * (0.38f + ring * 0.19f);
-            float sat = (ring + 1) / 4f;
-            for (int i = 0; i < 36; i++) {
-                float hue = i / 36f;
-                double a = hue * Math.PI * 2.0;
-                float px = cx + (float) Math.cos(a) * radius - 4f;
-                float py = cy + (float) Math.sin(a) * radius - 4f;
-                int rgb = Color.HSBtoRGB(hue, sat, 1f);
-                Ui.roundFill(g, px, py, 8, 8, 2, 0xFF000000 | (rgb & 0xFFFFFF));
-            }
+        // Compact circular hue ring: 32 round samples instead of 144 rounded squares.
+        // Keep draw-call count low; saturation is selected by distance from the centre.
+        for (int i = 0; i < 32; i++) {
+            float hue = i / 32f;
+            double a = hue * Math.PI * 2.0;
+            float radius = skyWheelR * 0.78f;
+            float px = cx + (float) Math.cos(a) * radius - 4.5f;
+            float py = cy + (float) Math.sin(a) * radius - 4.5f;
+            int rgb = Color.HSBtoRGB(hue, 1f, 1f);
+            Ui.circle(g, px, py, 9f, 0xFF000000 | (rgb & 0xFFFFFF));
         }
         int current = 0x7B2CFF;
         try { current = Integer.parseInt(skyHex, 16); } catch (RuntimeException ignored) {}
@@ -340,15 +337,22 @@ public class VisualsScreen extends Screen {
         Ui.circle(g, cx - 9, cy - 9, 18, 0xFF000000 | current);
         Ui.ring(g, cx - 13, cy - 13, 26, 0xFF737B8B);
 
-        float markerRadius = skyWheelR * 0.76f;
+        float markerRadius = skyWheelR * 0.78f;
         float hue = 0f;
         try {
             int c = Integer.parseInt(skyHex, 16);
             hue = Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null)[0];
         } catch (RuntimeException ignored) {}
         double angle = hue * Math.PI * 2.0;
-        float mx = cx + (float) Math.cos(angle) * markerRadius;
-        float my = cy + (float) Math.sin(angle) * markerRadius;
+        float saturation = 1f;
+        try {
+            int c = Integer.parseInt(skyHex, 16);
+            float[] hsv = Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null);
+            saturation = hsv[1];
+        } catch (RuntimeException ignored) {}
+        float markerRadiusActual = markerRadius * Math.max(0.12f, saturation);
+        float mx = cx + (float) Math.cos(angle) * markerRadiusActual;
+        float my = cy + (float) Math.sin(angle) * markerRadiusActual;
         Ui.circle(g, mx - 5, my - 5, 10, 0xFF111318);
         Ui.ring(g, mx - 5, my - 5, 10, 0xFFFFFFFF);
 
