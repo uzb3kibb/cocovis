@@ -3,7 +3,6 @@ package dev.coco.cocovis;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Util;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -113,9 +112,18 @@ public final class CocoVisConfig {
             if (!Files.exists(p)) {
                 save();
             }
-            // Use Minecraft's platform abstraction instead of AWT Desktop,
-            // which may be unavailable in a game runtime.
-            Util.getPlatform().openPath(p);
+            // Launch the operating system's file handler without relying on
+            // Minecraft-version-specific platform APIs or AWT Desktop.
+            String os = System.getProperty("os.name", "").toLowerCase();
+            ProcessBuilder opener;
+            if (os.contains("win")) {
+                opener = new ProcessBuilder("cmd", "/c", "start", "", p.toAbsolutePath().toString());
+            } else if (os.contains("mac")) {
+                opener = new ProcessBuilder("open", p.toAbsolutePath().toString());
+            } else {
+                opener = new ProcessBuilder("xdg-open", p.toAbsolutePath().toString());
+            }
+            opener.start();
         } catch (Exception e) {
             CocoVisClient.LOGGER.error("Could not open cocovis.json at {}", p, e);
         }
