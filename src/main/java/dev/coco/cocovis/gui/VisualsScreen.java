@@ -93,6 +93,7 @@ public class VisualsScreen extends Screen {
     private boolean skyHexFocused;
     private String skyHex = "7B2CFF";
     private float skyWheelX, skyWheelY, skyWheelR;
+    private float skyHueBarX, skyHueBarY, skyHueBarW, skyHueBarH;
 
     private final Map<Module, Float> toggleAnim = new HashMap<>();
     private final Map<Module, Float> hoverAnim = new HashMap<>();
@@ -317,23 +318,18 @@ public class VisualsScreen extends Screen {
     }
 
     private void updateSkyWheel(double mx, double my) {
-        double dx = mx - skyWheelX, dy = my - skyWheelY;
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        float innerR = skyWheelR * 0.64f;
         float[] hsv = currentSkyHsv();
-        float hue = hsv[0];
-        float saturation = hsv[1];
-
-        // Inner disk controls saturation; the outer annulus controls hue.
-        if (distance <= innerR) {
-            saturation = (float) Math.max(0.0, Math.min(1.0, distance / innerR));
-        } else if (distance >= skyWheelR * 0.72f && distance <= skyWheelR) {
-            hue = (float) ((Math.atan2(dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
+        // The hue strip changes hue; the circular SV field changes saturation and brightness.
+        if (Ui.inside(mx, my, skyHueBarX, skyHueBarY - 3, skyHueBarW, skyHueBarH + 6)) {
+            hsv[0] = clamp01((float) ((mx - skyHueBarX) / skyHueBarW));
         } else {
-            return;
+            double dx = mx - skyWheelX, dy = my - skyWheelY;
+            if (dx * dx + dy * dy > skyWheelR * skyWheelR) return;
+            hsv[1] = clamp01((float) ((dx / (2.0 * skyWheelR)) + 0.5));
+            hsv[2] = clamp01((float) (0.5 - dy / (2.0 * skyWheelR)));
         }
 
-        int rgb = Color.HSBtoRGB(hue, saturation, 1f) & 0xFFFFFF;
+        int rgb = Color.HSBtoRGB(hsv[0], hsv[1], hsv[2]) & 0xFFFFFF;
         String next = String.format(Locale.ROOT, "%06X", rgb);
         if (!next.equalsIgnoreCase(skyHex)) {
             skyHex = next;
@@ -346,53 +342,52 @@ public class VisualsScreen extends Screen {
         float right = contentX + contentW;
         float panelW = right - left;
         float cx = left + panelW / 2f;
-        float cy = listTop + 100f;
+        float cy = listTop + 116f;
         skyWheelX = cx;
         skyWheelY = cy;
-        skyWheelR = Math.min(53f, panelW * 0.34f);
-        float innerR = skyWheelR * 0.64f;
+        skyWheelR = Math.min(42f, panelW * 0.29f);
 
         Ui.fastRoundFill(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, DRAWER);
         Ui.fastRoundOutline(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, FIELD_LINE);
         Ui.title(g, font, "Цвет неба", left + 14, listTop + 17, TEXT);
-        Ui.text(g, font, "Выбор оттенка", left + 14, listTop + 34, MUTED, false);
+        Ui.text(g, font, "Оттенок", left + 14, listTop + 39, MUTED, false);
 
         float[] hsv = currentSkyHsv();
-        // Hue ring: round samples form a continuous-looking outer circle.
-        for (int i = 0; i < 32; i++) {
-            float hue = i / 32f;
-            double a = hue * Math.PI * 2.0;
-            float radius = skyWheelR * 0.84f;
-            float d = 9.5f;
-            int rgb = Color.HSBtoRGB(hue, 1f, 1f);
-            Ui.fastCircle(g, cx + (float) Math.cos(a) * radius - d / 2f,
-                    cy + (float) Math.sin(a) * radius - d / 2f, d, 0xFF000000 | (rgb & 0xFFFFFF));
+        skyHueBarX = left + 14;
+        skyHueBarY = listTop + 57;
+        skyHueBarW = panelW - 28;
+        skyHueBarH = 10;
+        for (int x = 0; x < Math.max(1, (int) skyHueBarW); x++) {
+            float hue = x / Math.max(1f, skyHueBarW - 1f);
+            int color = 0xFF000000 | (Color.HSBtoRGB(hue, 1f, 1f) & 0xFFFFFF);
+            g.fill((int) skyHueBarX + x, (int) skyHueBarY,
+                    (int) skyHueBarX + x + 1, (int) skyHueBarY + (int) skyHueBarH, color);
         }
+        float hueMarkerX = skyHueBarX + hsv[0] * skyHueBarW;
+        Ui.fastRoundOutline(g, hueMarkerX - 2, skyHueBarY - 2, 4, skyHueBarH + 4, 2, 0xFFFFFFFF);
 
-        // Real inner saturation disk: vivid hue at the edge, fading smoothly to white.
-        // Draw from outside inward so the centre remains a clean, light selection area.
-        for (int i = 8; i >= 1; i--) {
-            float t = i / 8f;
-            float d = innerR * 2f * t;
-            int rgb = Color.HSBtoRGB(hsv[0], t, 1f) & 0xFFFFFF;
-            Ui.fastCircle(g, cx - d / 2f, cy - d / 2f, d, 0xFF000000 | rgb);
+        // Circular saturation/value field. Horizontal position = saturation,
+        // vertical position = brightness, so the lower edge reaches true black.
+        int step = 3;
+        for (int py = -(int) skyWheelR; py <= skyWheelR; py += step) {
+            float ny = py / skyWheelR;
+            int half = (int) Math.floor(Math.sqrt(Math.max(0f, 1f - ny * ny)) * skyWheelR);
+            for (int px = -half; px <= half; px += step) {
+                float saturation = clamp01(px / (2f * skyWheelR) + 0.5f);
+                float value = clamp01(0.5f - py / (2f * skyWheelR));
+                int color = 0xFF000000 | (Color.HSBtoRGB(hsv[0], saturation, value) & 0xFFFFFF);
+                int x = Math.round(cx + px), y = Math.round(cy + py);
+                g.fill(x, y, x + step, y + step, color);
+            }
         }
-        Ui.fastRing(g, cx - innerR, cy - innerR, innerR * 2f, 0xFF30343D);
+        Ui.fastRing(g, cx - skyWheelR, cy - skyWheelR, skyWheelR * 2f, 0xFF30343D);
 
-        // Hue marker sits on the outer ring; saturation marker sits inside the disk.
-        float hueAngle = hsv[0] * (float) (Math.PI * 2.0);
-        float hx = cx + (float) Math.cos(hueAngle) * skyWheelR * 0.84f;
-        float hy = cy + (float) Math.sin(hueAngle) * skyWheelR * 0.84f;
-        Ui.fastCircle(g, hx - 5, hy - 5, 10, 0xFF111318);
-        Ui.fastRing(g, hx - 5, hy - 5, 10, 0xFFFFFFFF);
+        float markerX = cx + (hsv[1] - 0.5f) * 2f * skyWheelR;
+        float markerY = cy + (0.5f - hsv[2]) * 2f * skyWheelR;
+        Ui.fastCircle(g, markerX - 5, markerY - 5, 10, 0xFF111318);
+        Ui.fastRing(g, markerX - 5, markerY - 5, 10, 0xFFFFFFFF);
 
-        float satRadius = innerR * hsv[1];
-        float sx = cx + (float) Math.cos(hueAngle) * satRadius;
-        float sy = cy + (float) Math.sin(hueAngle) * satRadius;
-        Ui.fastCircle(g, sx - 5, sy - 5, 10, 0xFF111318);
-        Ui.fastRing(g, sx - 5, sy - 5, 10, 0xFFFFFFFF);
-
-        float fieldY = cy + skyWheelR + 20;
+        float fieldY = cy + skyWheelR + 13;
         float fieldX = left + 14;
         float fieldW = panelW - 28;
         Ui.text(g, font, "HEX", fieldX, fieldY + 9, MUTED, false);
@@ -407,10 +402,10 @@ public class VisualsScreen extends Screen {
     private boolean skyHexFieldAt(double mx, double my) {
         float left = contentX + (contentW + COL_GAP) / 2f;
         float panelW = contentX + contentW - left;
-        float cy = listTop + 100f;
-        float r = Math.min(53f, panelW * 0.34f);
-        float fieldY = cy + r + 20;
-        return Ui.inside((int) mx, (int) my, left + 48, fieldY, panelW - 62, 24);
+        float cy = listTop + 116f;
+        float r = Math.min(42f, panelW * 0.29f);
+        float fieldY = cy + r + 13;
+        return Ui.inside(mx, my, left + 48, fieldY, panelW - 62, 24);
     }
 
     private float maxScroll() {
@@ -735,7 +730,10 @@ public class VisualsScreen extends Screen {
             double wheelMouseX = menuMouseX(), wheelMouseY = menuMouseY();
             float dx = (float) wheelMouseX - skyWheelX, dy = (float) wheelMouseY - skyWheelY;
             double distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance <= skyWheelR && (distance <= skyWheelR * 0.64f || distance >= skyWheelR * 0.72f)) {
+            boolean onDisk = distance <= skyWheelR;
+            boolean onHueBar = Ui.inside(wheelMouseX, wheelMouseY, skyHueBarX, skyHueBarY - 3,
+                    skyHueBarW, skyHueBarH + 6);
+            if (onDisk || onHueBar) {
                 skyWheelDragging = true;
                 skyHexFocused = false;
                 updateSkyWheel(wheelMouseX, wheelMouseY);
