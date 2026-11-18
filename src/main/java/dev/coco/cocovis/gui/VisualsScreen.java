@@ -804,15 +804,16 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        if (skyHexFocused && event.isAllowedChatCharacter()) {
+        // HEX is a focused text field: don't rely on the chat-character filter here.
+        // That filter can reject valid key input in this screen on some 26.x builds.
+        if (skyHexFocused) {
             String typedHex = event.codepointAsString().toUpperCase(Locale.ROOT);
             if (typedHex.matches("[0-9A-F]") && skyHex.length() < 6) {
                 skyHex += typedHex;
                 applySkyHex();
                 if (skyHex.length() == 6) CocoVisConfig.save();
-                return true;
             }
-            return false;
+            return true;
         }
         String typed = event.codepointAsString();
         if (searchFocused && event.isAllowedChatCharacter()) {
