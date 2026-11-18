@@ -61,7 +61,9 @@ public final class ClanNametag {
         if (!effects.isEmpty()) {
             out.append(Component.literal("  "));
             Style iconFont = EffectGlyphs.style();
-            int shown = Math.min(4, effects.size());
+            // Show every active effect, not just the first four: each glyph is
+            // the vanilla potion-effect icon and the adjacent timer is its remaining duration.
+            int shown = effects.size();
             for (int i = 0; i < shown; i++) {
                 EffectsHud.Entry e = effects.get(i);
                 Character glyph = EffectGlyphs.glyph(e.id());
@@ -78,9 +80,6 @@ public final class ClanNametag {
                 if (i < shown - 1) {
                     out.append(Component.literal("  "));
                 }
-            }
-            if (effects.size() > shown) {
-                out.append(Component.literal(" +" + (effects.size() - shown)).withStyle(color(EMPTY_COLOR)));
             }
         }
         return out;
