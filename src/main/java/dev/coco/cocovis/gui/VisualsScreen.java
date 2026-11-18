@@ -290,19 +290,41 @@ public class VisualsScreen extends Screen {
             cfg.skyColorHex = "#" + skyHex.toUpperCase(Locale.ROOT);
             cfg.skyColorMode = 5;
             cfg.skyColorEnabled = true;
-            CocoVisConfig.save();
+        }
+    }
+
+    private float[] currentSkyHsv() {
+        try {
+            int c = Integer.parseInt(skyHex, 16);
+            return Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null);
+        } catch (RuntimeException ignored) {
+            return new float[]{0.75f, 0.8f, 1f};
         }
     }
 
     private void updateSkyWheel(double mx, double my) {
         double dx = mx - skyWheelX, dy = my - skyWheelY;
         double distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance > skyWheelR || distance < 5) return;
-        float hue = (float) ((Math.atan2(dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
-        float saturation = (float) Math.max(0.12, Math.min(1.0, distance / skyWheelR));
+        float innerR = skyWheelR * 0.64f;
+        float[] hsv = currentSkyHsv();
+        float hue = hsv[0];
+        float saturation = hsv[1];
+
+        // Inner disk controls saturation; the outer annulus controls hue.
+        if (distance <= innerR) {
+            saturation = (float) Math.max(0.0, Math.min(1.0, distance / innerR));
+        } else if (distance >= skyWheelR * 0.72f && distance <= skyWheelR) {
+            hue = (float) ((Math.atan2(dy, dx) / (Math.PI * 2.0) + 1.0) % 1.0);
+        } else {
+            return;
+        }
+
         int rgb = Color.HSBtoRGB(hue, saturation, 1f) & 0xFFFFFF;
-        skyHex = String.format(Locale.ROOT, "%06X", rgb);
-        applySkyHex();
+        String next = String.format(Locale.ROOT, "%06X", rgb);
+        if (!next.equalsIgnoreCase(skyHex)) {
+            skyHex = next;
+            applySkyHex();
+        }
     }
 
     private void drawSkyPicker(GuiGraphicsExtractor g, Font font) {
@@ -314,47 +336,48 @@ public class VisualsScreen extends Screen {
         skyWheelX = cx;
         skyWheelY = cy;
         skyWheelR = Math.min(53f, panelW * 0.34f);
+        float innerR = skyWheelR * 0.64f;
 
         Ui.roundFill(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, DRAWER);
         Ui.roundOutline(g, left + 5, listTop + 5, panelW - 10, listBottom - listTop - 10, 7, FIELD_LINE);
         Ui.title(g, font, "Цвет неба", left + 14, listTop + 17, TEXT);
         Ui.text(g, font, "Выбор оттенка", left + 14, listTop + 34, MUTED, false);
 
-        // Compact circular hue ring: 32 round samples instead of 144 rounded squares.
-        // Keep draw-call count low; saturation is selected by distance from the centre.
-        for (int i = 0; i < 32; i++) {
-            float hue = i / 32f;
+        float[] hsv = currentSkyHsv();
+        // Hue ring: round samples form a continuous-looking outer circle.
+        for (int i = 0; i < 48; i++) {
+            float hue = i / 48f;
             double a = hue * Math.PI * 2.0;
-            float radius = skyWheelR * 0.78f;
-            float px = cx + (float) Math.cos(a) * radius - 4.5f;
-            float py = cy + (float) Math.sin(a) * radius - 4.5f;
+            float radius = skyWheelR * 0.84f;
+            float d = 7.5f;
             int rgb = Color.HSBtoRGB(hue, 1f, 1f);
-            Ui.circle(g, px, py, 9f, 0xFF000000 | (rgb & 0xFFFFFF));
+            Ui.circle(g, cx + (float) Math.cos(a) * radius - d / 2f,
+                    cy + (float) Math.sin(a) * radius - d / 2f, d, 0xFF000000 | (rgb & 0xFFFFFF));
         }
-        int current = 0x7B2CFF;
-        try { current = Integer.parseInt(skyHex, 16); } catch (RuntimeException ignored) {}
-        Ui.circle(g, cx - 13, cy - 13, 26, 0xFF111318);
-        Ui.circle(g, cx - 9, cy - 9, 18, 0xFF000000 | current);
-        Ui.ring(g, cx - 13, cy - 13, 26, 0xFF737B8B);
 
-        float markerRadius = skyWheelR * 0.78f;
-        float hue = 0f;
-        try {
-            int c = Integer.parseInt(skyHex, 16);
-            hue = Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null)[0];
-        } catch (RuntimeException ignored) {}
-        double angle = hue * Math.PI * 2.0;
-        float saturation = 1f;
-        try {
-            int c = Integer.parseInt(skyHex, 16);
-            float[] hsv = Color.RGBtoHSB((c >> 16) & 255, (c >> 8) & 255, c & 255, null);
-            saturation = hsv[1];
-        } catch (RuntimeException ignored) {}
-        float markerRadiusActual = markerRadius * Math.max(0.12f, saturation);
-        float mx = cx + (float) Math.cos(angle) * markerRadiusActual;
-        float my = cy + (float) Math.sin(angle) * markerRadiusActual;
-        Ui.circle(g, mx - 5, my - 5, 10, 0xFF111318);
-        Ui.ring(g, mx - 5, my - 5, 10, 0xFFFFFFFF);
+        // Real inner saturation disk: vivid hue at the edge, fading smoothly to white.
+        // Draw from outside inward so the centre remains a clean, light selection area.
+        int hueRgb = Color.HSBtoRGB(hsv[0], 1f, 1f) & 0xFFFFFF;
+        for (int i = 12; i >= 1; i--) {
+            float t = i / 12f;
+            float d = innerR * 2f * t;
+            int rgb = Color.HSBtoRGB(hsv[0], t, 1f) & 0xFFFFFF;
+            Ui.circle(g, cx - d / 2f, cy - d / 2f, d, 0xFF000000 | rgb);
+        }
+        Ui.ring(g, cx - innerR, cy - innerR, innerR * 2f, 0xFF30343D);
+
+        // Hue marker sits on the outer ring; saturation marker sits inside the disk.
+        float hueAngle = hsv[0] * (float) (Math.PI * 2.0);
+        float hx = cx + (float) Math.cos(hueAngle) * skyWheelR * 0.84f;
+        float hy = cy + (float) Math.sin(hueAngle) * skyWheelR * 0.84f;
+        Ui.circle(g, hx - 5, hy - 5, 10, 0xFF111318);
+        Ui.ring(g, hx - 5, hy - 5, 10, 0xFFFFFFFF);
+
+        float satRadius = innerR * hsv[1];
+        float sx = cx + (float) Math.cos(hueAngle) * satRadius;
+        float sy = cy + (float) Math.sin(hueAngle) * satRadius;
+        Ui.circle(g, sx - 5, sy - 5, 10, 0xFF111318);
+        Ui.ring(g, sx - 5, sy - 5, 10, 0xFFFFFFFF);
 
         float fieldY = cy + skyWheelR + 20;
         float fieldX = left + 14;
@@ -365,9 +388,7 @@ public class VisualsScreen extends Screen {
         Ui.roundFill(g, inputX, fieldY, inputW, 24, 5, FIELD);
         Ui.roundOutline(g, inputX, fieldY, inputW, 24, 5, skyHexFocused ? BLUE : FIELD_LINE);
         Ui.text(g, font, "#" + skyHex, inputX + 8, fieldY + 8, TEXT, false);
-        if (skyPickerVisible()) {
-            Ui.text(g, font, "Цвет применяется сразу", fieldX, fieldY + 34, MUTED, false);
-        }
+        Ui.text(g, font, "Цвет применяется сразу", fieldX, fieldY + 34, MUTED, false);
     }
 
     private boolean skyHexFieldAt(double mx, double my) {
@@ -699,7 +720,8 @@ public class VisualsScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (skyPickerVisible()) {
             float dx = mX - skyWheelX, dy = mY - skyWheelY;
-            if (dx * dx + dy * dy <= skyWheelR * skyWheelR && dx * dx + dy * dy >= 25) {
+            double distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= skyWheelR && (distance <= skyWheelR * 0.64f || distance >= skyWheelR * 0.72f)) {
                 skyWheelDragging = true;
                 skyHexFocused = false;
                 updateSkyWheel(mX, mY);
@@ -771,7 +793,7 @@ public class VisualsScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (skyWheelDragging) { skyWheelDragging = false; return true; }
+        if (skyWheelDragging) { skyWheelDragging = false; CocoVisConfig.save(); return true; }
         if (dragging != null) {
             dragging = null;
             return true;
@@ -786,6 +808,7 @@ public class VisualsScreen extends Screen {
             if (typedHex.matches("[0-9A-F]") && skyHex.length() < 6) {
                 skyHex += typedHex;
                 applySkyHex();
+                if (skyHex.length() == 6) CocoVisConfig.save();
                 return true;
             }
             return false;
@@ -805,6 +828,7 @@ public class VisualsScreen extends Screen {
         if (skyHexFocused && event.key() == 259 && !skyHex.isEmpty()) {
             skyHex = skyHex.substring(0, skyHex.length() - 1);
             applySkyHex();
+            if (skyHex.length() == 6) CocoVisConfig.save();
             return true;
         }
         if (event.key() == 256) {
