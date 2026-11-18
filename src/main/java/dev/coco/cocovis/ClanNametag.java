@@ -87,13 +87,22 @@ public final class ClanNametag {
     }
 
     private static Component health(Player player, CocoVisConfig cfg) {
-        float max = Math.max(1f, player.getMaxHealth());
-        float hp = Math.max(0f, player.getHealth());
-        float ratio = Math.min(1f, hp / max);
+        // LivingEntity health is synchronized to tracking clients by vanilla entity data.
+        // Read that client-side value directly; never infer or fabricate hidden server health.
+        float syncedMax = player.getMaxHealth();
+        float syncedHp = player.getHealth();
+        boolean healthAvailable = Float.isFinite(syncedHp) && Float.isFinite(syncedMax) && syncedMax > 0f;
+        float max = healthAvailable ? syncedMax : 1f;
+        float hp = healthAvailable ? Math.max(0f, syncedHp) : 0f;
+        float ratio = healthAvailable ? Math.min(1f, hp / max) : 0f;
         int hpColor = ratio > 0.66f ? 0x55E08A : ratio > 0.33f ? 0xF2C94C : 0xE8606E;
 
         MutableComponent out = Component.empty();
         out.append(Component.literal("❤ ").withStyle(color(HEART_COLOR)));
+        if (!healthAvailable) {
+            out.append(Component.literal(" ?").withStyle(color(EMPTY_COLOR)));
+            return out;
+        }
         if (cfg.healthBar) {
             int seg = Math.max(3, Math.min(10, cfg.healthSegments));
             int filled = Math.round(ratio * seg);
@@ -104,13 +113,20 @@ public final class ClanNametag {
             out.append(Component.literal("▯".repeat(seg - filled)).withStyle(color(EMPTY_COLOR)));
         }
         if (cfg.healthNumber) {
-            out.append(Component.literal(" " + (int) Math.ceil(hp)).withStyle(color(hpColor)));
+            out.append(Component.literal(" " + formatHealth(hp)).withStyle(color(hpColor)));
             float absorb = player.getAbsorptionAmount();
-            if (absorb > 0f) {
-                out.append(Component.literal(" +" + (int) Math.ceil(absorb)).withStyle(color(ABSORB_COLOR)));
+            if (Float.isFinite(absorb) && absorb > 0f) {
+                out.append(Component.literal(" +" + formatHealth(absorb)).withStyle(color(ABSORB_COLOR)));
             }
         }
         return out;
+    }
+
+    private static String formatHealth(float value) {
+        float rounded = Math.round(value * 10f) / 10f;
+        return rounded == Math.round(rounded)
+                ? Integer.toString(Math.round(rounded))
+                : String.format(Locale.ROOT, "%.1f", rounded);
     }
 
     private static String emblemFor(String clan) {
