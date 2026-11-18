@@ -78,6 +78,7 @@ public final class SkyColorPickerScreen extends Screen {
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
         layout(sw, sh);
+        if (draggingWheel) setFromWheel(mouseX, mouseY);
 
         g.fill(0, 0, sw, sh, 0x99000000);
         Ui.shadow(g, panelX, panelY, panelW, panelH, 9);
@@ -181,15 +182,6 @@ public final class SkyColorPickerScreen extends Screen {
             return true;
         }
         return super.keyPressed(event);
-    }
-
-    @Override
-    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (draggingWheel) {
-            setFromWheel(mouseX, mouseY);
-            return true;
-        }
-        return super.mouseDragged(event, dx, dy);
     }
 
     @Override
